@@ -1,0 +1,9 @@
+*.[oa]
+octave-workspace
+*.aux
+*synctex*
+*.log
+*.fls
+*.fdb_latexmk
+*.out
+*.zip
