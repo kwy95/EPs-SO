@@ -7,19 +7,23 @@
 #include <sys/types.h>
 
 void type_prompt();
-void read_command(const char*, const char*);
+void read_command(char* cmd, char* args) {
+    scanf("test", cmd);
+    // cmd = (char*) malloc();
+}
 
 int main(int argc, char const **argv) {
     char* command;
     char* parameters;
     while (1) {
-        type_prompt();
+        //type_prompt();
         read_command(command, parameters);
+        printf("%s", command);
         if (fork() != 0) {
             /* Codigo do pai */
         } else {
             /* Codigo do filho */
-            execve(command,parameters,0);
+            // execve(command,parameters,0);
         }
     }
 
