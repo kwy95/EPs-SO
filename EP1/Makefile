@@ -2,8 +2,8 @@ CC=gcc
 EXE ?= bccsh
 CFLAGS=-ansi -Wall
 DEBUG=-ggdb
-LDFLAGS=-fopenmp -lm -lmpi
-INCLUDES=-I/usr/lib/x86_64-linux-gnu/openmpi/include/
+LDFLAGS=-lreadline
+# INCLUDES=-I/usr/lib/x86_64-linux-gnu/openmpi/include/
 
 main: bccsh
 
