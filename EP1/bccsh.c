@@ -10,21 +10,23 @@
 #include <readline/readline.h>
 #include <readline/history.h>
 
-void type_prompt();
-void read_command(const char* prompt, char** cmd) {
+// void type_prompt();
+int read_command(const char* prompt, char* cmd) {
     char* buf;
 
     buf = readline(prompt);
     if (strlen(buf) != 0) {
         add_history(buf);
-        // strcpy(cmd, buf);
-        // cmd = &buf;
+        strcpy(cmd, buf);
+        return 0;
+    } else {
+        return 1;
     }
-    // free(buf);
 }
 
 int main(int argc, char const **argv) {
-    char** command;
+    using_history();
+    char command[10];
     // char* parameters;
     char* username = getenv("USER");
     char* cwd = getcwd(NULL, 0);
@@ -35,7 +37,7 @@ int main(int argc, char const **argv) {
     while (1) {
         //type_prompt();
         read_command("certinho>> ", command);
-        // printf("\n%s\n", *command);
+        printf("\n%s %ld\n", command, strlen(command));
         // if (fork() != 0) {
             /* Codigo do pai */
         // } else {
