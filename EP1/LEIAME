@@ -1,2 +1,15 @@
-Relatório aqui
+EP1 da matéria MAC0422                                              05/10/2020
 
+Nomes                                    NUSP
+Rubens Gomes Neto                        9318484
+  SEU NOME E NUSP   <--
+
+Para compilar os programas basta chamar 'make' de dentro do diretório que os
+programas 'bccsh' e 'ep1' serão criados de acordo com as especificações
+pedidas.
+
+A compilação pode ser feita em partes invocando 'make bccsh' e 'make ep1'.
+
+A execução dos programas segue a especificação pedida, chamar './bccsh' inicia
+o shell implementado, dentro dele pode se chamar './ep1 <args>' para executar
+o simulador de escalonador onde <args> são os argumentos conforme solicitado.

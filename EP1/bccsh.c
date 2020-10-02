@@ -11,7 +11,7 @@
 #include <readline/history.h>
 
 void type_prompt();
-int takeInput(char* str,const char* prompt) {
+int read_input(char* str,const char* prompt) {
     char* buf;
 
     buf = readline(prompt);
@@ -25,6 +25,7 @@ int takeInput(char* str,const char* prompt) {
 }
 
 int main(int argc, char const **argv) {
+    using_history();
     char command[1000];
     // char* parameters;
     char* username = getenv("USER");
@@ -36,7 +37,7 @@ int main(int argc, char const **argv) {
 
     while (1) {
         //type_prompt();
-        if (takeInput(command,prompt))
+        if (read_input(command, prompt))
             continue;
         printf("\n%s\n", command);
         if (fork() != 0) {
