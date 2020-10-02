@@ -10,6 +10,8 @@
 #include <readline/readline.h>
 #include <readline/history.h>
 
+#include "util.h"
+
 void type_prompt();
 int read_input(char* str,const char* prompt) {
     char* buf;
@@ -35,6 +37,8 @@ int main(int argc, char const **argv) {
 
     printf("user: %ld | %s\ncwd: %ld | %s\n", strlen(username), username, strlen(cwd), cwd);
 
+    test_funcs();
+
     while (1) {
         //type_prompt();
         if (read_input(command, prompt))
@@ -52,6 +56,5 @@ int main(int argc, char const **argv) {
         // n++;
     }
     // free(command);
-
     return 0;
 }
