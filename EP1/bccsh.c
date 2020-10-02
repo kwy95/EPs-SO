@@ -52,6 +52,7 @@ int main(int argc, char const **argv) {
             /* Codigo do filho */
             // execve(command,parameters,0);
             printf("Filho\n");
+            exit(0);
         }
         // n++;
     }
