@@ -1,3 +1,6 @@
+#include "util.h"
+
+
 typedef struct trace
 {
     char * nome;
@@ -6,43 +9,38 @@ typedef struct trace
     int deadline;
 } Trace;
 
-
-
-#include "util.h"
-
-int main(int argc, char const **argv) {
-
+void FirstComeFirst(char * file_name){
     FILE * fp;
     char * line = NULL;
     size_t len = 0;
     size_t read;
     char * pch;
-    int num_lines = 0;
-    int line_i = 0;
-
-    fp = fopen(argv[1], "r");
+    fp = fopen(file_name, "r");
     if (fp == NULL)
         exit(EXIT_FAILURE);
-    while ((read = getline(&line, &len, fp)) != -1) {
-        num_lines++;
-    }
-
-    fclose(fp);
-    fp = fopen(argv[1], "r");
-    if (fp == NULL)
-        exit(EXIT_FAILURE);
-    Trace traceroute[num_lines];
 
     while ((read = getline(&line, &len, fp)) != -1) {
-        traceroute[line_i].nome = strtok(line, " ");
-        traceroute[line_i].to = atoi(strtok (NULL, " "));
-        traceroute[line_i].dt = atoi(strtok (NULL, " "));
-        traceroute[line_i].deadline = atoi(strtok (NULL, " "));
-        line_i++;
+        //printf("%s\n",line );
+        Trace traceroute;
+        traceroute.nome = strtok(line, " ");
+        traceroute.to = atoi(strtok (NULL, " "));
+        traceroute.dt = atoi(strtok (NULL, " "));
+        traceroute.deadline = atoi(strtok (NULL, " "));
     }
 
     fclose(fp);
     if (line)
         free(line);
+
+}
+
+
+int main(int argc, char const **argv) {
+    char * file_name = argv[2];
+
+    if (atoi(argv[1]) == 1)
+        FirstComeFirst(file_name);        
+
+
 
 }
