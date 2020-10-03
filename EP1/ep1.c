@@ -25,18 +25,18 @@ void FirstComeFirst(char * file_name){
     while ((read = getline(&line, &len, fp)) != -1) {
         //printf("%s\n",line );
         Trace traceroute;
-        traceroute.nome = strtok(line, " ");
-        traceroute.to = atoi(strtok (NULL, " "));
-        traceroute.dt = atoi(strtok (NULL, " "));
-        traceroute.deadline = atoi(strtok (NULL, " "));
+        traceroute->nome = strtok(line, " ");
+        traceroute->to = atoi(strtok (NULL, " "));
+        traceroute->dt = atoi(strtok (NULL, " "));
+        traceroute->deadline = atoi(strtok (NULL, " "));
         if (time > traceroute.to)
-            wait_time += time - traceroute.to;
-        while(time < traceroute.to){
+            wait_time += time - traceroute->to;
+        while(time < traceroute->to){
             sleep(1);
             time++;
         }
-        while(traceroute.dt > 0){
-            traceroute.dt--;
+        while(traceroute->dt > 0){
+            traceroute->dt--;
             sleep(1);
             time++;
         }
