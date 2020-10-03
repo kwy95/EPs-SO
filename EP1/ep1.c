@@ -27,12 +27,11 @@ void FirstComeFirst(char * file_name){
 }
 
 int main(int argc, char const **argv) {
+    int mode = atoi(argv[1]);
     char* file_name = argv[2];
     char* out_file  = argv[3];
     if(argc == 5 && !strcmp(argv[4], "d"))
         _debug = 1;
-
-
 
     if (atoi(argv[1]) == 1)
         FirstComeFirst(file_name);

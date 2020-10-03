@@ -21,14 +21,19 @@
 #define MAXARG 10
 #define EMBLEN 4
 
-typedef struct trace
-{
+typedef struct trace {
     char* nome;
     int to;
     int dt;
     int deadline;
 };
 typedef struct trace* Trace;
+
+typedef struct arg {
+    Trace process;
+    pthread_mutex_t cpu_access;
+};
+typedef struct arg* Args;
 
 typedef struct nd {
     char* valor;
