@@ -17,35 +17,53 @@ void checkPtr(void* ptr) {
  */
 Lista CriaLista() {
     Lista L = (Lista) malloc(sizeof(struct lst)); checkPtr(L);
+
     L->inicio = NULL;
+    L->fim    = NULL;
     return(L);
 }
-void InsereInicio(Lista L, char* v) {
+void InsereInicio(Lista L, const char* v) {
     Node novo = (Node) malloc(sizeof(struct nd)); checkPtr(novo);
-    novo->valor = v;
-    novo->rank = L->inicio != NULL ? L->inicio->rank + 1 : 0;
-    novo->prox = L->inicio;
-    L->inicio = novo;
+
+    novo->valor = (char*) malloc(strlen(v) + 1); checkPtr(novo->valor);
+    strcpy(novo->valor, v);
+
+    novo->next      = L->inicio;
+    novo->prev      = NULL;
+    L->inicio->prev = novo;
+    L->inicio       = novo;
 }
-int rank(Lista L, const char* v) {
-    Node atual = L->inicio;
-    if (L == NULL) {
-        return -1;
-    }
-    while (atual != NULL) {
-        if (strcmp(atual->valor, v)) {
-            return atual->rank;
-        }
-        atual = atual->prox;
-    }
-    return -1;
+
+void InsereFim(Lista L, const char* v) {
+    Node novo = (Node) malloc(sizeof(struct nd)); checkPtr(novo);
+
+    //novo->valor  = v;
+    novo->next   = NULL;
+    novo->prev   = L->fim;
+    L->fim->next = novo;
+    L->fim       = novo;
 }
+
+// int rank(Lista L, const char* v) {
+//     Node atual = L->inicio;
+//     if (L == NULL) {
+//         return -1;
+//     }
+//     while (atual != NULL) {
+//         if (strcmp(atual->valor, v)) {
+//             return atual->rank;
+//         }
+//         atual = atual->next;
+//     }
+//     return -1;
+// }
+
 void DestroiLista(Lista L) {
     Node novo  = L->inicio;
     Node atual = novo;
-    while(novo->prox != NULL) {
+    while(novo->next != NULL) {
         atual = novo;
-        novo  = novo->prox;
+        novo  = novo->next;
         free(atual);
     }
     free(novo);
@@ -54,11 +72,12 @@ void DestroiLista(Lista L) {
 }
 void ImprimeLista(Lista L) {
     Node atual = L->inicio;
+    printf("{ ");
     while(atual != NULL) {
-        printf("r: %d | %s; ", atual->rank, atual->valor);
-        atual = atual->prox;
+        printf("%s; ", atual->valor);
+        atual = atual->next;
     }
-    printf("\n");
+    printf("}\n");
 }
 
 int test_funcs() {
@@ -70,16 +89,21 @@ int test_funcs() {
     printf("criou lista\n");
     for (int i=0; i<5; i+=1) {
         InsereInicio(L, n[i]);
-        InsereInicio(LL, m[i]);
+        // InsereFim(LL, m[i]);
     }
-    printf("inseriu\n");
+    printf("inseriu 1\n");
+    for (int i=0; i<5; i+=1) {
+        // InsereInicio(L, n[i]);
+        InsereFim(LL, m[i]);
+    }
+    printf("inseriu 2\n");
     ImprimeLista(L);
     ImprimeLista(LL);
     printf("L: %p\n", (void*) L);
-    for (int i = 0; i < 5; i++) {
-        int r = rank(L, m[i]);
-        printf("[%d]: %d; ", i, r);
-    }
+    // for (int i = 0; i < 5; i++) {
+    //     int r = rank(L, m[i]);
+    //     printf("[%d]: %d; ", i, r);
+    // }
     printf("\n");
 
     DestroiLista(L);

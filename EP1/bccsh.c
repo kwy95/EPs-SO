@@ -1,24 +1,52 @@
-#include <pthread.h>
-#include <signal.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <unistd.h>
-
-#include <sys/types.h>
-
-#include <readline/readline.h>
-#include <readline/history.h>
 
 #include "util.h"
 
-void type_prompt();
+char* prompt_gen() {
+    char* username = getenv("USER");
+    char* cwd = getcwd(NULL, 0);
+
+    int u_len = strlen(username);
+    int d_len = strlen(cwd);
+
+    int prompt_len = u_len + d_len + 4 + 1;
+
+    char* prompt = (char*) malloc(prompt_len); checkPtr(prompt);
+
+    strncpy(prompt, "{", 1);
+    strncpy(prompt + 1, username, u_len);
+    strncpy(prompt + 1 + u_len, "@", 1);
+    strncpy(prompt + 2 + u_len, cwd, d_len);
+    strcpy(prompt + 2 + u_len + d_len, "} ");
+
+    return prompt;
+}
+
+char* embutidas[] = { "mkdir", "kill", "ln" };
+
+int fazdir(char** argv) {
+    if(strcmp(argv[0], "mkdir")) {
+        printf("entrou no fazdir, mas era %s\n", argv[0]);
+        exit(1);
+    }
+    return 0;
+}
+int homicidio(char** argv);
+int liga(char** argv);
+
+int parse_input(char** commands, char* buffer) {
+
+
+    return 0;
+}
+
 int read_input(char* str,const char* prompt) {
     char* buf;
 
     buf = readline(prompt);
     if (strlen(buf) != 0) {
         add_history(buf);
+
+        // parse_input(commands, buf);
         strcpy(str, buf);
         return 0;
     } else {
@@ -27,26 +55,32 @@ int read_input(char* str,const char* prompt) {
 }
 
 int main(int argc, char const **argv) {
-    using_history();
+    // int n = 1;
+    // usleep(1000000);
     char command[1000];
-    // char* parameters;
-    char* username = getenv("USER");
-    char* cwd = getcwd(NULL, 0);
-    int n = 0;
-    const char* prompt = "certinho>> ";
+    char* prompt = prompt_gen();
 
-    printf("user: %ld | %s\ncwd: %ld | %s\n", strlen(username), username, strlen(cwd), cwd);
 
-    test_funcs();
 
+    // printf("user: %ld | %s\ncwd: %ld | %s\n", strlen(username), username,
+    //                                           strlen(cwd),      cwd);
+    // printf("prompt: %s\n", prompt);
+
+    // test_funcs();
+
+    using_history();
     while (1) {
         //type_prompt();
         if (read_input(command, prompt))
             continue;
-        printf("\n%s\n", command);
-        if (fork() != 0) {
+        // printf("\n%s\n", command);
+
+        pid_t pid = fork();
+        if (pid != 0) {
             /* Codigo do pai */
-            printf("Pai\n");
+            printf("Pai: %d\n", pid);
+            wait(NULL);
+            printf("terminou\n");
         }
         else {
             /* Codigo do filho */
@@ -54,8 +88,8 @@ int main(int argc, char const **argv) {
             printf("Filho\n");
             exit(0);
         }
-        // n++;
+        // n*=10;
     }
-    // free(command);
+    free(prompt);
     return 0;
 }

@@ -2,26 +2,40 @@
 #ifndef _UTIL_H
 #define _UTIL_H
 
+#include <pthread.h>
+#include <signal.h>
+#include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
+#include <unistd.h>
 
-#define ABS(x) ((x) < 0 ? -(x) : (x))
+#include <sys/types.h>
+#include <sys/wait.h>
+
+#include <readline/readline.h>
+#include <readline/history.h>
+
+// #define ABS(x) ((x) < 0 ? -(x) : (x))
+#define MAXCOM 100
 
 typedef struct nd {
     char* valor;
-    int rank;
-    struct nd* prox;
+    struct nd* next;
+    struct nd* prev;
 } node;
 typedef node* Node;
 
 typedef struct lst {
     Node inicio;
+    Node fim;
 } lista;
 typedef lista* Lista;
 
 void checkPtr(void*);
 
 Lista CriaLista();
-void InsereInicio(Lista, char*);
+void InsereInicio(Lista, const char*);
+void InsereFim(Lista, const char*);
 int rank(Lista, const char*);
 void DestroiLista(Lista);
 void ImprimeLista(Lista);
