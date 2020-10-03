@@ -27,7 +27,8 @@ typedef struct trace
     int to;
     int dt;
     int deadline;
-} Trace;
+};
+typedef struct trace* Trace;
 
 typedef struct nd {
     char* valor;
