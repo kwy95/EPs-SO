@@ -7,3 +7,6 @@ octave-workspace
 *.fdb_latexmk
 *.out
 *.zip
+*.tar.gz
+*teste*
+

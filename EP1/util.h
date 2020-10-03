@@ -9,6 +9,7 @@
 #include <string.h>
 #include <unistd.h>
 
+#include <sys/stat.h>
 #include <sys/types.h>
 #include <sys/wait.h>
 
@@ -16,7 +17,9 @@
 #include <readline/history.h>
 
 // #define ABS(x) ((x) < 0 ? -(x) : (x))
-#define MAXCOM 100
+#define MAXLEN 100
+#define MAXARG 10
+#define EMBLEN 4
 
 typedef struct nd {
     char* valor;
