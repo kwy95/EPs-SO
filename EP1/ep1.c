@@ -18,7 +18,9 @@ void FirstComeFirst(char * file_name){
     fp = fopen(file_name, "r");
     if (fp == NULL)
         exit(EXIT_FAILURE);
-
+    int time =0;
+    int total_lines = 0;
+    int wait_time = 0;
     while ((read = getline(&line, &len, fp)) != -1) {
         //printf("%s\n",line );
         Trace traceroute;
@@ -26,11 +28,26 @@ void FirstComeFirst(char * file_name){
         traceroute.to = atoi(strtok (NULL, " "));
         traceroute.dt = atoi(strtok (NULL, " "));
         traceroute.deadline = atoi(strtok (NULL, " "));
+        if (time > traceroute.to)
+            wait_time += time - traceroute.to;
+        while(time < traceroute.to){
+            sleep(1);
+            time++;
+        }
+        while(traceroute.dt > 0){
+            traceroute.dt--;
+            sleep(1);
+            time++;
+        }
+        total_lines++;
+        printf("%d\n", time);
     }
 
     fclose(fp);
     if (line)
         free(line);
+    printf("%d\n", wait_time);
+    printf("%f\n", (float) wait_time/total_lines);
 
 }
 
