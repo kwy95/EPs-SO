@@ -23,7 +23,7 @@
 
 typedef struct trace
 {
-    char nome[31];
+    char* nome;
     int to;
     int dt;
     int deadline;

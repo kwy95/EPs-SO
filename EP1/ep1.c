@@ -1,6 +1,8 @@
 
 #include "util.h"
 
+int _debug = 0;
+
 void FirstComeFirst(char * file_name){
     FILE * fp;
     char * line = NULL;
@@ -12,7 +14,6 @@ void FirstComeFirst(char * file_name){
         exit(EXIT_FAILURE);
 
     while ((read = getline(&line, &len, fp)) != -1) {
-        //printf("%s\n",line );
         Trace traceroute;
         traceroute->nome = strtok(line, " ");
         traceroute->to = atoi(strtok (NULL, " "));
@@ -23,12 +24,15 @@ void FirstComeFirst(char * file_name){
     fclose(fp);
     if (line)
         free(line);
-
 }
 
-
 int main(int argc, char const **argv) {
-    char * file_name = argv[2];
+    char* file_name = argv[2];
+    char* out_file  = argv[3];
+    if(argc == 5 && !strcmp(argv[4], "d"))
+        _debug = 1;
+
+
 
     if (atoi(argv[1]) == 1)
         FirstComeFirst(file_name);
