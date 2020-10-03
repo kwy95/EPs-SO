@@ -9,6 +9,7 @@ typedef struct trace
     int deadline;
 } Trace;
 
+
 void FirstComeFirst(char * file_name){
     FILE * fp;
     char * line = NULL;
