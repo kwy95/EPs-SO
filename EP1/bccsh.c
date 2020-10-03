@@ -21,8 +21,8 @@ char* prompt_gen() {
     return prompt;
 }
 
+/** Implementações com syscalls das funcoes embutidadas */
 char* embutidas[] = { "mkdir", "kill", "ln", "quit" };
-
 int fazdir(const char** argv) {
     if(strcmp(argv[0], "mkdir")) {
         printf("entrou no fazdir, mas era %s\n", argv[0]);
@@ -70,7 +70,6 @@ int func_id(const char* command) {
     }
     return -1;
 }
-
 int execcommand(const char** argv) {
     int fid = func_id(argv[0]);
     switch (func_id(argv[0])) {

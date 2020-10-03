@@ -21,6 +21,14 @@
 #define MAXARG 10
 #define EMBLEN 4
 
+typedef struct trace
+{
+    char nome[31];
+    int to;
+    int dt;
+    int deadline;
+} Trace;
+
 typedef struct nd {
     char* valor;
     struct nd* next;

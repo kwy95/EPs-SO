@@ -1,12 +1,3 @@
-typedef struct trace
-{
-    char * nome;
-    int to;
-    int dt;
-    int deadline;
-} Trace;
-
-
 
 #include "util.h"
 
