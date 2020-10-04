@@ -26,8 +26,14 @@ Trace novoTrace(char* t) {
 
     return novo;
 }
-void atualizarTrace(Trace t, long dt) {
-    t->elapsed += dt;
+void atualizarTrace(Trace t, struct timespec dt) {
+    t->elapsed += dt.tv_sec;
+    t->nelapsed += dt.tv_nsec;
+    if(t->nelapsed > TSCALE) {
+        long s = t->nelapsed / TSCALE;
+        t->elapsed += s;
+        t->nelapsed %= TSCALE;
+    }
 }
 void destroiTrace(Trace t) {
     if (t != NULL) {
@@ -162,12 +168,19 @@ void ImprimeFila(Fila F) {
         printf("  first: %d; last: %d | n_id: %d\n", F->first, F->last, F->n_id);
         for (int i = 0; i < F->size; i++) {
             Trace elemento = F->traces[(F->first + i) % F->space];
-            printf("  elemento %d: [ %s, %d, %d, %d, %d, %d ]\n", i,
+            printf("  elemento %d: [ %s, %d, %ld, %d, %ld, %d ]\n", i,
                         elemento->nome,     elemento->to,      elemento->dt,
                         elemento->deadline, elemento->elapsed, elemento->id);
             // printf("    loc: %p\n", (void*) elemento);
         }
     }
+}
+/** Calcula o tempo passado em segundos */
+int time_dif(struct timespec t, struct timespec t0) {
+    long s = t.tv_sec - t0.tv_sec;
+    long ns = t.tv_nsec - t0.tv_nsec;
+    long e = (s*TSCALE) + ns / TSCALE;
+    return e;
 }
 
 
@@ -205,7 +218,7 @@ int test_funcs() {
     Trace elemento = dequeue(F);
     while(elemento != NULL) {
         ImprimeFila(F);
-        printf("\nelemento retirado: %s, %d, %d, %d\n\n", elemento->nome,
+        printf("\nelemento retirado: %s, %d, %ld, %d\n\n", elemento->nome,
                                                       elemento->to,
                                                       elemento->dt,
                                                       elemento->deadline);

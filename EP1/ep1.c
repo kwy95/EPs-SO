@@ -10,9 +10,13 @@
 
 int _debug = 0;
 int _sair = 0;
-clock_t _t0;
+int _contexto = 0;
 pthread_mutex_t* _mutexes;
+pthread_cond_t* _conds;
 
+FILE* output;
+
+struct timespec _t0;
 struct timespec _disponivel, _resto;
 struct timespec _quantum = { 0, QUANTUM };
 
@@ -40,99 +44,93 @@ Fila init_fila(const char* file_name) {
 
 void *proc_sim(void* p) {
     Trace proc = (Trace) p;
-    // struct timespec tempo = { _disponivel, _ndisponivel };
-    // struct timespec resto;
-    while(1) {
-        pthread_mutex_lock(&_mutexes[proc->id]);
-        if(_debug) {
-            fprintf(stderr, "O processo %s acabou de comecou a rodar na CPU %d\n",
-                                proc->nome, 1);
-        }
 
+    pthread_mutex_lock(&_mutexes[proc->id]);
+    while(proc->elapsed < proc->dt) {
+        pthread_cond_wait(&_conds[proc->id], &_mutexes[proc->id]);
         printf("rodando proc %s", proc->nome);
-        if(nanosleep(&_disponivel, &_resto) == -1) {
-            pthread_mutex_unlock(&_mutexes[proc->id]);
-            nanosleep(&_quantum, NULL);
-            if(_debug) {
-                fprintf(stderr, "O processo %s acabou de comecou a rodar na CPU %d\n",
-                                    proc->nome, 1);
-            }
-            continue;
-        }
-
-        pthread_mutex_unlock(&_mutexes[proc->id]);
-        break;
-    };
-
-    if(_debug) {
-        fprintf(stderr, "O processo %s acabou de encerrar sua execução, a linha de saída é:\n    %s %d %d",
-                            proc->nome, proc->nome, proc->to);
+        nanosleep(&_quantum, NULL);
+        atualizarTrace(proc, _quantum);
+        // if(_debug) {
+        //     fprintf(stderr, "O processo %s acabou de parar de rodar na CPU %d\n",
+        //                         proc->nome, 1);
+        //     }
     }
+
+    pthread_mutex_unlock(&_mutexes[proc->id]);
+    // if(_debug) {
+    //     fprintf(stderr, "O processo %s acabou de encerrar sua execução, a linha de saída é:\n    %s %d %d",
+    //                         proc->nome, proc->nome, proc->to, proc->deadline);
+    // }
 
     return NULL;
 }
 
-void FirstComeFirstServed(void* proc){
-    Fila processos = (Fila) proc;
-    int N = processos->size;
+pthread_t* escalonador_init(Fila P) {
+    int N = P->size;
 
-    pthread_t threads[N];//= (pthread_t*) malloc(N * sizeof(pthread_t)); checkPtr(threads);
+    pthread_t* threads= (pthread_t*) malloc(N * sizeof(pthread_t)); checkPtr(threads);
 
     _mutexes = (pthread_mutex_t*) malloc(N * sizeof(pthread_mutex_t)); checkPtr(_mutexes);
+    _conds = (pthread_cond_t*) malloc(N * sizeof(pthread_cond_t)); checkPtr(_conds);
     for (int i = 0; i < N; i++) {
         pthread_mutex_init(&_mutexes[i], NULL);
+        pthread_cond_init(&_conds[i], NULL);
         pthread_mutex_lock(&_mutexes[i]);
     }
 
-    _t0 = clock();
+    clock_gettime(CLOCK_MONOTONIC, &_t0);
+
+    return threads;
+}
+
+void* FirstComeFirstServed(void* proc){
+    Fila processos = (Fila) proc;
+    // int N = processos->size;
+
+    pthread_t* threads = escalonador_init(processos);
+
+    Fila escalonador = CriaFila();
 
     while (peek(processos) != NULL) {
-        Fila escalonador = CriaFila();
-        time_t t = time(NULL) - _t0;
+        struct timespec t;
+        clock_gettime(CLOCK_MONOTONIC, &t);
 
-        while(peek(processos)->to <= t) {
+        while(peek(processos)->to <= t.tv_sec) {
             Trace tr = dequeue(processos);
             pthread_create(&threads[tr->id], NULL, proc_sim, tr);
             enqueue(escalonador, tr);
             if(_debug) {
-                fprintf(stderr, "O processo %s acabou de chegar no sistema com a linha:\n    %s %d %d %d\n",
+                fprintf(stderr, "O processo %s acabou de chegar no sistema com a linha:\n    %s %d %ld %d\n",
                                 tr->nome, tr->nome, tr->to, tr->dt, tr->deadline);
             }
         }
 
-        while(peek(escalonador)->to <= t) {
+        if(peek(escalonador) != NULL) {
 
         }
-        // if (time > traceroute.to)
-        //     wait_time += time - traceroute.to;
-        // while(time < traceroute.to){
-        //     sleep(1);
-        //     time++;
+
+        // if(_debug) {
+        //     fprintf(stderr, "O processo %s acabou de comecou a rodar na CPU %d\n",
+        //                         proc->nome, 1);
         // }
-        // while(traceroute.dt > 0){
-        //     traceroute.dt--;
-        //     sleep(1);
-        //     time++;
+
+        // while(peek(escalonador)->to <= ) {
+
         // }
-        // total_lines++;
-        // printf("%d\n", time);
     }
 
 
     // printf("%d\n", wait_time);
     // printf("%f\n", (float) wait_time/total_lines);
-
+    return NULL;
 }
 
-void ShortestRemainingTimeNext(void* file_name){
+void* ShortestRemainingTimeNext(void* proc){
     Fila processos = (Fila) proc;
     int N = processos->size;
 
-    int time =0;
-
-    int wait_time = 0;
-    int i = 0;
-    int segment = 0;
+    escalonador_init(processos);
 
     while (0) {
         // tracelist[total_lines].nome = strtok(line, " ");
@@ -150,11 +148,20 @@ void ShortestRemainingTimeNext(void* file_name){
 
 
 
-    printf("%d\n", wait_time);
+    // printf("%d\n", wait_time);
     // printf("%f\n", (float) wait_time/total_lines);
 
+    return NULL;
 }
 
+void* RoundRobin(void* proc) {
+    Fila processos = (Fila) proc;
+    int N = processos->size;
+
+    escalonador_init(processos);
+
+    return NULL;
+}
 
 int main(int argc, char const **argv) {
     int mode = atoi(argv[1]);
@@ -164,8 +171,19 @@ int main(int argc, char const **argv) {
         _debug = 1;
 
     Fila processos = init_fila(file_name);
+    output = fopen(out_file, "w");
+    if (output == NULL)
+        exit(EXIT_FAILURE);
+
+    pthread_t escalonador;
     if (mode == 1)
-        FirstComeFirstServed((void*) processos));
+        pthread_create(&escalonador, NULL, FirstComeFirstServed, (void*) processos);
     if (mode == 2)
-        ShortestRemainingTime((void*) processos));
+        pthread_create(&escalonador, NULL, ShortestRemainingTimeNext, (void*) processos);
+    if (mode == 3)
+        pthread_create(&escalonador, NULL, RoundRobin, (void*) processos);
+
+    fclose(output);
+
+    return 0;
 }

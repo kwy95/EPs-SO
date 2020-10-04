@@ -11,31 +11,26 @@
 
 // #define ABS(x) ((x) < 0 ? -(x) : (x))
 #define TSCALE 1000000000L
-#define QUANTUM 1000L
+#define QUANTUM 500000000L
 
 void checkPtr(void*);
 
 typedef struct trace {
     char* nome;
     int to;
-    int dt;
+    long dt;
     int deadline;
     // ---------
     long elapsed;
+    long nelapsed;
     int id;
 } trace;
 typedef struct trace* Trace;
 
 Trace novoTrace(char*);
-void atualizarTrace(Trace, long);
+void atualizarTrace(Trace, struct timespec);
 void destroiTrace(Trace);
 void destroiTraceA(Trace*, int);
-
-typedef struct arg {
-    Trace process;
-    useconds_t allowed;
-} arg;
-typedef struct arg* Args;
 
 typedef struct fila {
     Trace* traces;
@@ -53,6 +48,8 @@ Trace dequeue(Fila);
 Trace peek(Fila);
 void DestroiFila(Fila);
 void ImprimeFila(Fila);
+
+int time_dif(struct timespec, struct timespec);
 
 int test_funcs();
 
