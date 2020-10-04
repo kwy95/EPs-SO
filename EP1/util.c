@@ -26,7 +26,7 @@ Trace novoTrace(char* t) {
 
     return novo;
 }
-void atualizarTrace(Trace t,long dt) {
+void atualizarTrace(Trace t, long dt) {
     t->elapsed += dt;
 }
 void destroiTrace(Trace t) {
@@ -162,7 +162,7 @@ void ImprimeFila(Fila F) {
         printf("  first: %d; last: %d | n_id: %d\n", F->first, F->last, F->n_id);
         for (int i = 0; i < F->size; i++) {
             Trace elemento = F->traces[(F->first + i) % F->space];
-            printf("  elemento %d: [ %s, %d, %d, %d, %ld, %d ]\n", i,
+            printf("  elemento %d: [ %s, %d, %d, %d, %d, %d ]\n", i,
                         elemento->nome,     elemento->to,      elemento->dt,
                         elemento->deadline, elemento->elapsed, elemento->id);
             // printf("    loc: %p\n", (void*) elemento);

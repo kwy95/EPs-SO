@@ -10,9 +10,11 @@
 
 int _debug = 0;
 int _sair = 0;
-long _disponivel = 0;
 clock_t _t0;
 pthread_mutex_t* _mutexes;
+
+struct timespec _disponivel, _resto;
+struct timespec _quantum = { 0, QUANTUM };
 
 Fila init_fila(const char* file_name) {
     FILE * fp;
@@ -38,18 +40,23 @@ Fila init_fila(const char* file_name) {
 
 void *proc_sim(void* p) {
     Trace proc = (Trace) p;
+    // struct timespec tempo = { _disponivel, _ndisponivel };
+    // struct timespec resto;
     while(1) {
         pthread_mutex_lock(&_mutexes[proc->id]);
+        if(_debug) {
+            fprintf(stderr, "O processo %s acabou de comecou a rodar na CPU %d\n",
+                                proc->nome, 1);
+        }
 
         printf("rodando proc %s", proc->nome);
-        while(1) {
-            if(_sair) {
-                pthread_mutex_unlock(&_mutexes[proc->id]);
-                break;
+        if(nanosleep(&_disponivel, &_resto) == -1) {
+            pthread_mutex_unlock(&_mutexes[proc->id]);
+            nanosleep(&_quantum, NULL);
+            if(_debug) {
+                fprintf(stderr, "O processo %s acabou de comecou a rodar na CPU %d\n",
+                                    proc->nome, 1);
             }
-        }
-        if(_sair) {
-            sleep(1);
             continue;
         }
 
@@ -57,11 +64,16 @@ void *proc_sim(void* p) {
         break;
     };
 
+    if(_debug) {
+        fprintf(stderr, "O processo %s acabou de encerrar sua execução, a linha de saída é:\n    %s %d %d",
+                            proc->nome, proc->nome, proc->to);
+    }
+
     return NULL;
 }
 
-void FirstComeFirstServed(const char * file_name){
-    Fila processos = init_fila(file_name);
+void FirstComeFirstServed(void* proc){
+    Fila processos = (Fila) proc;
     int N = processos->size;
 
     pthread_t threads[N];//= (pthread_t*) malloc(N * sizeof(pthread_t)); checkPtr(threads);
@@ -112,8 +124,9 @@ void FirstComeFirstServed(const char * file_name){
 
 }
 
-void ShortestRemainingTime(const char * file_name){
-    Fila processos = init_fila(file_name);
+void ShortestRemainingTimeNext(void* file_name){
+    Fila processos = (Fila) proc;
+    int N = processos->size;
 
     int time =0;
 
@@ -150,8 +163,9 @@ int main(int argc, char const **argv) {
     if(argc == 5 && !strcmp(argv[4], "d"))
         _debug = 1;
 
+    Fila processos = init_fila(file_name);
     if (mode == 1)
-        FirstComeFirstServed(file_name);
+        FirstComeFirstServed((void*) processos));
     if (mode == 2)
-        ShortestRemainingTime(file_name);
+        ShortestRemainingTime((void*) processos));
 }

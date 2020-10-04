@@ -10,7 +10,8 @@
 #include <unistd.h>
 
 // #define ABS(x) ((x) < 0 ? -(x) : (x))
-#define TSCALE 1000000000
+#define TSCALE 1000000000L
+#define QUANTUM 1000L
 
 void checkPtr(void*);
 
