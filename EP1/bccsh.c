@@ -1,6 +1,10 @@
 
 #include "util.h"
 
+#define MAXLEN 100
+#define MAXARG 10
+#define EMBLEN 4
+
 char* prompt_gen() {
     char* username = getenv("USER");
     char* cwd = getcwd(NULL, 0);
@@ -23,6 +27,7 @@ char* prompt_gen() {
 
 /** Implementações com syscalls das funcoes embutidadas */
 char* embutidas[] = { "mkdir", "kill", "ln", "quit" };
+
 int fazdir(const char** argv) {
     if(strcmp(argv[0], "mkdir")) {
         printf("entrou no fazdir, mas era %s\n", argv[0]);
@@ -72,7 +77,7 @@ int func_id(const char* command) {
 }
 int execcommand(const char** argv) {
     int fid = func_id(argv[0]);
-    switch (func_id(argv[0])) {
+    switch (fid) {
         case 0:
             fazdir(argv);
             break;
@@ -83,13 +88,12 @@ int execcommand(const char** argv) {
             liga(argv);
             break;
         case 3:
-            kill(0, 9);
+            kill(0, SIGKILL);
             break;
         default:
             if(execve(argv[0], argv, NULL)) {
                 printf("erro ao rodar %s\n", argv[0]);
                 exit(1);
-                // return errno;
             }
             break;
     }
@@ -115,22 +119,27 @@ int parse_input(char** commands, char* buffer) {
     int i = 0;
     temp = strtok(buffer, " ");
     while (temp != NULL) {
-        // printf ("%s\n",temp);
-        strcpy(commands[i], temp);
+        if(i == MAXARG) {
+            printf("muitos argumentos, encerrando execução\n");
+            exit(1);
+        }
+        printf ("temp: %s\n",temp);
+        strncpy(commands[i], temp, MAXLEN);
         i++;
         temp = strtok(NULL, " ");
     }
+    commands[i] = NULL;
     return 0;
 }
 
 int main(int argc, char const **argv) {
-    // int n = 1;
-    // usleep(1000000);
+    // printf("%s\n", argv[0]);
     char entrada[MAXLEN*MAXARG + 1];
     char* args[MAXARG + 1];
     for(int i = 0; i < MAXARG; i++) {
-        args[i] = (char*) malloc(MAXLEN); checkPtr(args[i]);
+        args[i] = (char*) malloc(MAXLEN + 1); checkPtr(args[i]);
     }
+    args[MAXARG] = NULL;
 
 
     char* prompt = prompt_gen();
@@ -139,14 +148,13 @@ int main(int argc, char const **argv) {
     //                                           strlen(cwd),      cwd);
     // printf("prompt: %s\n", prompt);
 
-    // test_funcs();
+    test_funcs();
 
     using_history();
-    while (1) {
+    while (0) {
         if (read_input(entrada, prompt))
             continue;
         parse_input(args, entrada);
-
 
         pid_t pid = fork();
         if (pid != 0) {
@@ -166,6 +174,7 @@ int main(int argc, char const **argv) {
     free(prompt);
     for(int i = 0; i < MAXARG; i++) {
         free(args[i]);
+        args[i] = NULL;
     }
     return 0;
 }

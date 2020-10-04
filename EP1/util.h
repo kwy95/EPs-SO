@@ -1,3 +1,4 @@
+#define  _GNU_SOURCE
 
 #ifndef _UTIL_H
 #define _UTIL_H
@@ -17,23 +18,40 @@
 #include <readline/history.h>
 
 // #define ABS(x) ((x) < 0 ? -(x) : (x))
-#define MAXLEN 100
-#define MAXARG 10
-#define EMBLEN 4
 
 typedef struct trace {
     char* nome;
     int to;
     int dt;
     int deadline;
-};
+    int elapsed;
+} trace;
 typedef struct trace* Trace;
+
+Trace novoTrace(char*);
+void atualizarTrace(Trace, int);
 
 typedef struct arg {
     Trace process;
     pthread_mutex_t cpu_access;
-};
+} arg;
 typedef struct arg* Args;
+
+typedef struct fila {
+    Trace* traces;
+    int size;
+    int space;
+    int first;
+    int last;
+} fila;
+typedef struct fila* Fila;
+
+Fila CriaFila();
+void enqueue(Fila, Trace);
+Trace dequeue(Fila);
+void DestroiFila(Fila);
+void ImprimeFila(Fila);
+
 
 typedef struct nd {
     char* valor;
@@ -53,7 +71,6 @@ void checkPtr(void*);
 Lista CriaLista();
 void InsereInicio(Lista, const char*);
 void InsereFim(Lista, const char*);
-int rank(Lista, const char*);
 void DestroiLista(Lista);
 void ImprimeLista(Lista);
 

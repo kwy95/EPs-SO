@@ -1,16 +1,8 @@
 #include "util.h"
 
+int _debug = 0;
 
-typedef struct trace
-{
-    char * nome;
-    int to;
-    int dt;
-    int deadline;
-} Trace;
-
-
-void FirstComeFirst(char * file_name){
+void FirstComeFirstServed(const char * file_name) {
     FILE * fp;
     char * line = NULL;
     size_t len = 0;
@@ -24,12 +16,12 @@ void FirstComeFirst(char * file_name){
     int wait_time = 0;
     while ((read = getline(&line, &len, fp)) != -1) {
         //printf("%s\n",line );
-        Trace traceroute;
+        Trace traceroute = (Trace) malloc(sizeof(struct trace));
         traceroute->nome = strtok(line, " ");
         traceroute->to = atoi(strtok (NULL, " "));
         traceroute->dt = atoi(strtok (NULL, " "));
         traceroute->deadline = atoi(strtok (NULL, " "));
-        if (time > traceroute.to)
+        if (time > traceroute->to)
             wait_time += time - traceroute->to;
         while(time < traceroute->to){
             sleep(1);
@@ -56,11 +48,11 @@ void FirstComeFirst(char * file_name){
 
 int main(int argc, char const **argv) {
     int mode = atoi(argv[1]);
-    char* file_name = argv[2];
-    char* out_file  = argv[3];
+    const char* file_name = argv[2];
+    const char* out_file  = argv[3];
     if(argc == 5 && !strcmp(argv[4], "d"))
         _debug = 1;
 
     if (atoi(argv[1]) == 1)
-        FirstComeFirst(file_name);
+        FirstComeFirstServed(file_name);
 }
