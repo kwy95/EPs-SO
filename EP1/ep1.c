@@ -2,7 +2,7 @@
 
 int _debug = 0;
 
-void FirstComeFirstServed(const char * file_name) {
+void FirstComeFirst(const char * file_name){
     FILE * fp;
     char * line = NULL;
     size_t len = 0;
@@ -15,26 +15,65 @@ void FirstComeFirstServed(const char * file_name) {
     int total_lines = 0;
     int wait_time = 0;
     while ((read = getline(&line, &len, fp)) != -1) {
-        //printf("%s\n",line );
-        Trace traceroute = (Trace) malloc(sizeof(struct trace));
-        traceroute->nome = strtok(line, " ");
-        traceroute->to = atoi(strtok (NULL, " "));
-        traceroute->dt = atoi(strtok (NULL, " "));
-        traceroute->deadline = atoi(strtok (NULL, " "));
-        if (time > traceroute->to)
-            wait_time += time - traceroute->to;
-        while(time < traceroute->to){
+        printf("%s\n",line );
+        struct trace traceroute;
+        traceroute.nome = strtok(line, " ");
+        traceroute.to = atoi(strtok (NULL, " "));
+        traceroute.dt = atoi(strtok (NULL, " "));
+        traceroute.deadline = atoi(strtok (NULL, " "));
+        if (time > traceroute.to)
+            wait_time += time - traceroute.to;
+        while(time < traceroute.to){
             sleep(1);
             time++;
         }
-        while(traceroute->dt > 0){
-            traceroute->dt--;
+        while(traceroute.dt > 0){
+            traceroute.dt--;
             sleep(1);
             time++;
         }
         total_lines++;
         printf("%d\n", time);
     }
+
+    fclose(fp);
+    if (line)
+        free(line);
+    printf("%d\n", wait_time);
+    printf("%f\n", (float) wait_time/total_lines);
+
+}
+
+void ShortestRemainingTime(char * file_name){
+    FILE * fp;
+    char * line = NULL;
+    size_t len = 0;
+    size_t read;
+    char * pch;
+    fp = fopen(file_name, "r");
+    if (fp == NULL)
+        exit(EXIT_FAILURE);
+    int time =0;
+    int total_lines = 0;
+    int wait_time = 0;
+    int i = 0;
+    int segment = 0;
+    Trace tracelist;
+
+    while ((read = getline(&line, &len, fp)) != -1) {
+        tracelist[total_lines].nome = strtok(line, " ");
+        tracelist[total_lines].to = atoi(strtok (NULL, " "));
+        tracelist[total_lines].dt = atoi(strtok (NULL, " "));
+        tracelist[total_lines].deadline = atoi(strtok (NULL, " "));
+
+        total_lines++;
+    }
+    //for (int i = 0; i < total_lines; ++i)
+    //{
+
+    //}
+
+
 
     fclose(fp);
     if (line)
@@ -54,5 +93,7 @@ int main(int argc, char const **argv) {
         _debug = 1;
 
     if (atoi(argv[1]) == 1)
-        FirstComeFirstServed(file_name);
+        FirstComeFirst(file_name);
+    if (atoi(argv[1]) == 2)
+        ShortestRemainingTime(file_name);
 }
