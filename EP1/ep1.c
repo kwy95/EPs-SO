@@ -17,7 +17,7 @@ pthread_cond_t* _conds;
 FILE* output;
 
 struct timespec _t0;
-struct timespec _disponivel, _resto;
+// struct timespec _disponivel, _resto;
 struct timespec _quantum = { 0, QUANTUM };
 
 Fila init_fila(const char* file_name) {
@@ -84,19 +84,21 @@ pthread_t* escalonador_init(Fila P) {
     return threads;
 }
 
-void* FirstComeFirstServed(void* proc){
+void* FirstComeFirstServed(void* proc) {
     Fila processos = (Fila) proc;
-    // int N = processos->size;
+    int curId = -1;
+    Trace cur;
+
 
     pthread_t* threads = escalonador_init(processos);
 
     Fila escalonador = CriaFila();
 
-    while (peek(processos) != NULL) {
+    while (1) {
         struct timespec t;
         clock_gettime(CLOCK_MONOTONIC, &t);
 
-        while(peek(processos)->to <= t.tv_sec) {
+        while(peek(processos) != NULL && peek(processos)->to <= time_dif(t, _t0)) {
             Trace tr = dequeue(processos);
             pthread_create(&threads[tr->id], NULL, proc_sim, tr);
             enqueue(escalonador, tr);
@@ -106,8 +108,15 @@ void* FirstComeFirstServed(void* proc){
             }
         }
 
-        if(peek(escalonador) != NULL) {
+        if(curId == -1 && peek(escalonador) != NULL) {
+            cur = dequeue(escalonador);
+            curId = cur->id;
 
+            pthread_mutex_unlock(&_mutexes[curId]);
+        }
+
+        if(curId != -1 && !pthread_mutex_trylock(&_mutexes[curId])) {
+            // if()
         }
 
         // if(_debug) {
@@ -115,20 +124,14 @@ void* FirstComeFirstServed(void* proc){
         //                         proc->nome, 1);
         // }
 
-        // while(peek(escalonador)->to <= ) {
-
-        // }
     }
 
-
-    // printf("%d\n", wait_time);
-    // printf("%f\n", (float) wait_time/total_lines);
     return NULL;
 }
 
-void* ShortestRemainingTimeNext(void* proc){
+void* ShortestRemainingTimeNext(void* proc) {
     Fila processos = (Fila) proc;
-    int N = processos->size;
+    // int N = processos->size;
 
     escalonador_init(processos);
 
@@ -156,7 +159,7 @@ void* ShortestRemainingTimeNext(void* proc){
 
 void* RoundRobin(void* proc) {
     Fila processos = (Fila) proc;
-    int N = processos->size;
+    // int N = processos->size;
 
     escalonador_init(processos);
 
@@ -171,7 +174,7 @@ int main(int argc, char const **argv) {
         _debug = 1;
 
     Fila processos = init_fila(file_name);
-    output = fopen(out_file, "w");
+    output = fopen(out_file, "a");
     if (output == NULL)
         exit(EXIT_FAILURE);
 
