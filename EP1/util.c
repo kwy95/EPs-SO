@@ -54,6 +54,9 @@ void destroiTraceA(Trace* T, int size) {
         T = NULL;
     }
 }
+int trace_done(Trace t) {
+    return t->elapsed >= t->dt;
+}
 
 Fila CriaFila() {
     Fila F = (Fila) malloc(sizeof(struct fila)); checkPtr(F);
@@ -80,7 +83,7 @@ void aumentaF(Fila F) {
     for (int i = F->size; i < new_space; i++) {
         new_array[i] = NULL;
     }
-    printf("\n  aumentou  \n");
+    // printf("\n  aumentou  \n");
 
 
     Trace* old = F->traces;
@@ -104,7 +107,7 @@ void diminuiF(Fila F) {
     for (int i = F->size; i < new_space; i++) {
         new_array[i] = NULL;
     }
-    printf("\n  diminuiu  \n");
+    // printf("\n  diminuiu  \n");
 
 
     Trace* old = F->traces;
@@ -115,6 +118,10 @@ void diminuiF(Fila F) {
     F->last = F->size;
 
     free(old);
+}
+
+int empty(Fila F) {
+    return F->size <= 0;
 }
 
 void enqueue(Fila F, Trace T) {
@@ -131,7 +138,7 @@ void enqueue(Fila F, Trace T) {
     F->last = (F->last + 1) % F->space;
 }
 Trace dequeue(Fila F) {
-    if(F->size <= 0) {
+    if(empty(F)) {
         // printf("Fila vazia\n");
         return NULL;
     }
@@ -146,11 +153,10 @@ Trace dequeue(Fila F) {
     return t;
 }
 Trace peek(Fila F) {
-    if(F->size <= 0)
+    if(empty(F))
         return NULL;
     return F->traces[F->first];
 }
-
 
 void DestroiFila(Fila F) {
     if(F != NULL) {
@@ -161,7 +167,7 @@ void DestroiFila(Fila F) {
 }
 void ImprimeFila(Fila F) {
     // printf("space: %d; size: %d\n", F->space, F->size);
-    if(F->size == 0) {
+    if(empty(F)) {
         printf("A fila está vazia.\n");
     } else {
         printf("Fila de tamanho %d com %d elementos\n", F->space, F->size);
@@ -175,11 +181,12 @@ void ImprimeFila(Fila F) {
         }
     }
 }
+
 /** Calcula o tempo passado em segundos */
 int time_dif(struct timespec t, struct timespec t0) {
     long s = t.tv_sec - t0.tv_sec;
     long ns = t.tv_nsec - t0.tv_nsec;
-    long e = (s*TSCALE) + ns / TSCALE;
+    long e = ((s*TSCALE) + ns) / TSCALE;
     return e;
 }
 

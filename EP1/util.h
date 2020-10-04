@@ -11,7 +11,7 @@
 
 // #define ABS(x) ((x) < 0 ? -(x) : (x))
 #define TSCALE 1000000000L
-#define QUANTUM 500000000L
+#define QUANTUM 1000000000L
 
 void checkPtr(void*);
 
@@ -31,6 +31,7 @@ Trace novoTrace(char*);
 void atualizarTrace(Trace, struct timespec);
 void destroiTrace(Trace);
 void destroiTraceA(Trace*, int);
+int trace_done(Trace);
 
 typedef struct fila {
     Trace* traces;
@@ -43,6 +44,7 @@ typedef struct fila {
 typedef struct fila* Fila;
 
 Fila CriaFila();
+int empty(Fila);
 void enqueue(Fila, Trace);
 Trace dequeue(Fila);
 Trace peek(Fila);

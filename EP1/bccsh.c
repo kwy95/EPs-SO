@@ -25,9 +25,9 @@ char* prompt_gen() {
 
     char* prompt = (char*) malloc(prompt_len); checkPtr(prompt);
 
-    strncpy(prompt, "{", 1);
+    strcpy(prompt, "{");
     strncpy(prompt + 1, username, u_len);
-    strncpy(prompt + 1 + u_len, "@", 1);
+    strcpy(prompt + 1 + u_len, "@");
     strncpy(prompt + 2 + u_len, cwd, d_len);
     strcpy(prompt + 2 + u_len + d_len, "} ");
 
@@ -40,7 +40,7 @@ char* prompt_gen() {
 /** Implementações com syscalls das funcoes embutidadas */
 char* embutidas[] = { "mkdir", "kill", "ln", "quit" };
 
-int fazdir(const char** argv) {
+int fazdir(char** argv) {
     if(strcmp(argv[0], "mkdir")) {
         printf("entrou no fazdir, mas era %s\n", argv[0]);
         exit(1);
@@ -52,7 +52,7 @@ int fazdir(const char** argv) {
     }
     return 0;
 }
-int homicidio(const char** argv) {
+int homicidio(char** argv) {
     if(strcmp(argv[0], "kill")) {
         printf("entrou no homicidio, mas era %s\n", argv[0]);
         exit(1);
@@ -66,7 +66,7 @@ int homicidio(const char** argv) {
     }
     return 0;
 }
-int liga(const char** argv) {
+int liga(char** argv) {
     if(strcmp(argv[0], "ln")) {
         printf("entrou no liga, mas era %s\n", argv[0]);
         exit(1);
@@ -87,7 +87,7 @@ int func_id(const char* command) {
     }
     return -1;
 }
-int execcommand(const char** argv) {
+int execcommand(char** argv) {
     int fid = func_id(argv[0]);
     switch (fid) {
         case 0:
@@ -127,9 +127,10 @@ int read_input(char* str,const char* prompt) {
     }
 }
 int parse_input(char** commands, char* buffer) {
+    char* saveptr;
     char* temp;
     int i = 0;
-    temp = strtok(buffer, " ");
+    temp = strtok_r(buffer, " ", &saveptr);
     while (temp != NULL) {
         if(i == MAXARG) {
             printf("muitos argumentos, encerrando execução\n");
@@ -138,7 +139,7 @@ int parse_input(char** commands, char* buffer) {
         // printf ("temp: %s\n",temp);
         strncpy(commands[i], temp, MAXLEN);
         i++;
-        temp = strtok(NULL, " ");
+        temp = strtok_r(NULL, " ", &saveptr);
     }
     commands[i] = NULL;
     return 0;
