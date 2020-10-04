@@ -52,13 +52,18 @@ void *proc_sim(void* p) {
     Trace proc = (Trace) p;
 
     pthread_mutex_lock(&_mutexes[proc->id]);
-    while(proc->elapsed < proc->dt) {
+    while(!trace_done(proc)) {
         pthread_cond_wait(&_conds[proc->id], &_mutexes[proc->id]);
-        // printf("rodando proc %s", proc->nome);
-        if(nanosleep(&_quantum, NULL) != 0){
-            printf("PANICO! sleep interrompido!\n");
-        }
+        nanosleep(&_quantum, NULL);
         atualizarTrace(proc, _quantum);
+        // struct timespec resto;
+        // if(nanosleep(&_quantum, &resto) != 0){
+        //     fprintf(stderr, "PANICO! sleep interrompido!\n");
+        //     atualizarTrace(proc, resto);
+        // } else {
+        //     atualizarTrace(proc, _quantum);
+            // fprintf(stderr, "\n**  [%ld] proc elapsed: %ld s %ld ns\n", proc->dt, proc->elapsed, proc->nelapsed);
+        // }
     }
     pthread_mutex_unlock(&_mutexes[proc->id]);
 
@@ -84,31 +89,30 @@ pthread_t* escalonador_init(Fila P) {
 }
 
 void* FirstComeFirstServed(void* proc) {
-    fprintf(stderr, "    Iniciou-se FCFS\n");
+    // fprintf(stderr, "    Iniciou-se FCFS\n");
     Fila processos = (Fila) proc;
     int N = processos->size;
     int curId = -1;
     Trace cur;
 
-
     pthread_t* threads = escalonador_init(processos);
 
     Fila escalonador = CriaFila();
 
-    while (!empty(processos) || escalonador->size > 0 || curId != -1) {
+    while (!empty(processos) || !empty(escalonador) || curId != -1) {
         struct timespec ts;
         clock_gettime(CLOCK_REALTIME, &ts);
         int t = time_dif(ts, _t0);
         // printTime(ts);
 
         /** Chegada de processos no sistema */
-        while(!empty(processos) && peek(processos)->to >= t) {
+        while(!empty(processos) && t >= peek(processos)->to) {
             Trace tr = dequeue(processos);
             pthread_create(&threads[tr->id], NULL, proc_sim, tr);
             enqueue(escalonador, tr);
             if(_debug) {
-                fprintf(stderr, "O processo %s acabou de chegar no sistema com a linha:\n    %s %d %ld %d\n",
-                                tr->nome, tr->nome, tr->to, tr->dt, tr->deadline);
+                fprintf(stderr, "[%d] O processo %s acabou de chegar no sistema com a linha:\n    %s %d %ld %d\n",
+                                t, tr->nome, tr->nome, tr->to, tr->dt, tr->deadline);
             }
         }
 
@@ -135,6 +139,7 @@ void* FirstComeFirstServed(void* proc) {
                                         cur->nome, cur->nome, ts.tv_sec, t);
                 }
                 fprintf(output, "%s %ld %d\n", cur->nome, ts.tv_sec, t);
+                pthread_mutex_unlock(&_mutexes[curId]);
                 destroiTrace(cur);
 
                 /** Executa pŕoximo processo */
@@ -206,12 +211,11 @@ void* ShortestRemainingTimeNext(void* proc) {
 }
 
 void* RoundRobin(void* proc) {
-    fprintf(stderr, "    Iniciou-se RR\n");
+    // fprintf(stderr, "    Iniciou-se RR\n");
     Fila processos = (Fila) proc;
     int N = processos->size;
     int curId = -1;
     Trace cur;
-
 
     pthread_t* threads = escalonador_init(processos);
 
@@ -223,13 +227,13 @@ void* RoundRobin(void* proc) {
         int t = time_dif(ts, _t0);
 
         /** Chegada de processos no sistema */
-        while(!empty(processos) && peek(processos)->to >= t) {
+        while(!empty(processos) && t >= peek(processos)->to) {
             Trace tr = dequeue(processos);
             pthread_create(&threads[tr->id], NULL, proc_sim, tr);
             enqueue(escalonador, tr);
             if(_debug) {
-                fprintf(stderr, "O processo %s acabou de chegar no sistema com a linha:\n    %s %d %ld %d\n",
-                                tr->nome, tr->nome, tr->to, tr->dt, tr->deadline);
+                fprintf(stderr, "[%d] O processo %s acabou de chegar no sistema com a linha:\n    %s %d %ld %d\n",
+                                t, tr->nome, tr->nome, tr->to, tr->dt, tr->deadline);
             }
         }
 
@@ -256,6 +260,7 @@ void* RoundRobin(void* proc) {
                                         cur->nome, cur->nome, ts.tv_sec, t);
                 }
                 fprintf(output, "%s %ld %d\n", cur->nome, ts.tv_sec, t);
+                pthread_mutex_unlock(&_mutexes[curId]);
                 destroiTrace(cur);
 
                 /** Executa pŕoximo processo */
@@ -278,11 +283,12 @@ void* RoundRobin(void* proc) {
             /** Retorna processo pra fila e executa o próximo */
             } else {
                 _contexto++;
+                pthread_mutex_unlock(&_mutexes[curId]);
                 enqueue(escalonador, cur);
                 cur = dequeue(escalonador);
                 curId = cur->id;
 
-                // pthread_mutex_lock(&_mutexes[curId]);
+                pthread_mutex_lock(&_mutexes[curId]);
                 pthread_cond_signal(&_conds[curId]);
                 pthread_mutex_unlock(&_mutexes[curId]);
                 if(_debug) {

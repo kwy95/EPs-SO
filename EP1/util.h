@@ -11,7 +11,7 @@
 
 // #define ABS(x) ((x) < 0 ? -(x) : (x))
 #define TSCALE 1000000000L
-#define QUANTUM 1000000000L
+#define QUANTUM 500000000L
 
 void checkPtr(void*);
 

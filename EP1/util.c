@@ -29,7 +29,7 @@ Trace novoTrace(char* t) {
 void atualizarTrace(Trace t, struct timespec dt) {
     t->elapsed += dt.tv_sec;
     t->nelapsed += dt.tv_nsec;
-    if(t->nelapsed > TSCALE) {
+    if(t->nelapsed >= TSCALE) {
         long s = t->nelapsed / TSCALE;
         t->elapsed += s;
         t->nelapsed %= TSCALE;
