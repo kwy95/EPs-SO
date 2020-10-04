@@ -16,7 +16,7 @@ Trace novoTrace(char* t) {
     novo->nome = (char*) malloc(strlen(buf) + 1); checkPtr(novo->nome);
     strcpy(novo->nome, buf);
 
-    novo->to       = atoi(strtok_r(NULL, " ", &saveptr));
+    novo->t0       = atoi(strtok_r(NULL, " ", &saveptr));
     novo->dt       = atoi(strtok_r(NULL, " ", &saveptr));
     novo->deadline = atoi(strtok_r(NULL, " ", &saveptr));
     novo->elapsed  = 0;
@@ -175,7 +175,7 @@ void ImprimeFila(Fila F) {
         for (int i = 0; i < F->size; i++) {
             Trace elemento = F->traces[(F->first + i) % F->space];
             printf("  elemento %d: [ %s, %d, %ld, %d, %ld, %d ]\n", i,
-                        elemento->nome,     elemento->to,      elemento->dt,
+                        elemento->nome,     elemento->t0,      elemento->dt,
                         elemento->deadline, elemento->elapsed, elemento->id);
             // printf("    loc: %p\n", (void*) elemento);
         }
@@ -226,7 +226,7 @@ int test_funcs() {
     while(elemento != NULL) {
         ImprimeFila(F);
         printf("\nelemento retirado: %s, %d, %ld, %d\n\n", elemento->nome,
-                                                      elemento->to,
+                                                      elemento->t0,
                                                       elemento->dt,
                                                       elemento->deadline);
         destroiTrace(elemento);

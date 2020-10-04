@@ -17,7 +17,7 @@ void checkPtr(void*);
 
 typedef struct trace {
     char* nome;
-    int to;
+    int t0;
     long dt;
     int deadline;
     // ---------
