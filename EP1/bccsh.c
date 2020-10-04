@@ -1,5 +1,6 @@
 
 #include "util.h"
+// #include "fila.h"
 
 #define MAXLEN 100
 #define MAXARG 10
@@ -21,6 +22,9 @@ char* prompt_gen() {
     strncpy(prompt + 1 + u_len, "@", 1);
     strncpy(prompt + 2 + u_len, cwd, d_len);
     strcpy(prompt + 2 + u_len + d_len, "} ");
+
+    free(cwd);
+    cwd = NULL;
 
     return prompt;
 }

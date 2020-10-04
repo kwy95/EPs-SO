@@ -9,24 +9,30 @@ LDFLAGS=-lreadline -lpthread
 main: bccsh ep1
 	rm -f *.o
 
-bccsh: bccsh.o util.o
-	$(CC) $(DEBUG) -o $(EXESH) $^ $(LDFLAGS)
+bccsh: bccsh.c util.c util.h
+	$(CC) $(CFLAGS) $(DEBUG) $^ -o $(EXESH) $(LDFLAGS)
 
-ep1: ep1.o util.o
-	$(CC) $(DEBUG) -o $(EXEEP) $^ $(LDFLAGS)
-
-
-bccsh.o: bccsh.c util.h
-	$(CC) $(DEBUG) -c $<
-
-ep1.o: ep1.c util.h
-	$(CC) $(DEBUG) -c $<
+ep1: ep1.c util.c util.h
+	$(CC) $(CFLAGS) $(DEBUG) $^ -o $(EXEEP) $(LDFLAGS)
 
 
-util: util.o
-	$(CC) $(CFLAGS) -o $@ $^ $(LDFLAGS)
+# bccsh.o: bccsh.c fila.h util.h
+# 	$(CC) $(CFLAGS) $(DEBUG) -c $<
+
+# ep1.o: ep1.c fila.h util.h
+# 	$(CC) $(CFLAGS) $(DEBUG) -c $<
+
+
+# util: util.o
+# 	$(CC) $(CFLAGS) $^ -o $@ $(LDFLAGS)
 
 util.o: util.c util.h
+	$(CC) $(CFLAGS) -c $<
+
+# fila: fila.o
+# 	$(CC) $(CFLAGS) $^ -o $@ $(LDFLAGS)
+
+fila.o: fila.c fila.h util.h
 	$(CC) $(CFLAGS) -c $<
 
 clean:

@@ -30,6 +30,8 @@ typedef struct trace* Trace;
 
 Trace novoTrace(char*);
 void atualizarTrace(Trace, int);
+void destroiTrace(Trace);
+void destroiTraceA(Trace*, int);
 
 typedef struct arg {
     Trace process;
@@ -51,28 +53,6 @@ void enqueue(Fila, Trace);
 Trace dequeue(Fila);
 void DestroiFila(Fila);
 void ImprimeFila(Fila);
-
-
-typedef struct nd {
-    char* valor;
-    struct nd* next;
-    struct nd* prev;
-} node;
-typedef node* Node;
-
-typedef struct lst {
-    Node inicio;
-    Node fim;
-} lista;
-typedef lista* Lista;
-
-void checkPtr(void*);
-
-Lista CriaLista();
-void InsereInicio(Lista, const char*);
-void InsereFim(Lista, const char*);
-void DestroiLista(Lista);
-void ImprimeLista(Lista);
 
 int test_funcs();
 

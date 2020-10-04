@@ -1,52 +1,6 @@
 
 #include "util.h"
-
-void checkPtr(void* ptr) {
-    if (ptr == NULL) {
-        printf("Pointer error!\n");
-        exit(1);
-    }
-}
-
-Trace novoTrace(char* t) {
-    Trace novo = (Trace) malloc(sizeof(struct trace)); checkPtr(novo);
-
-    char* saveptr;
-    char* buf = strtok_r(t, " ", &saveptr);
-    novo->nome = (char*) malloc(strlen(buf) + 1); checkPtr(novo->nome);
-    strcpy(novo->nome, buf);
-
-    novo->to       = atoi(strtok_r(NULL, " ", &saveptr));
-    novo->dt       = atoi(strtok_r(NULL, " ", &saveptr));
-    novo->deadline = atoi(strtok_r(NULL, " ", &saveptr));
-    novo->elapsed  = 0;
-
-    printf("    criando: %p | %s\n", (void*) novo, novo->nome);
-
-    return novo;
-}
-void atualizarTrace(Trace t,int dt) {
-    t->elapsed += dt;
-}
-void destroiTrace(Trace t) {
-    if (t != NULL) {
-        printf("    destruindo: %p | %s\n", (void*) t, t->nome);
-        free(t->nome);
-        t->nome = NULL;
-        free(t);
-        t = NULL;
-    }
-}
-void destroiTraceA(Trace* T, int size) {
-    if(T != NULL) {
-        for (int i = 0; i < size; i++) {
-            destroiTrace(T[i]);
-            T[i] = NULL;
-        }
-        free(T);
-        T = NULL;
-    }
-}
+#include "fila.h"
 
 Fila CriaFila() {
     Fila F = (Fila) malloc(sizeof(struct fila)); checkPtr(F);
@@ -106,7 +60,7 @@ void diminuiF(Fila F) {
 }
 
 void enqueue(Fila F, Trace T) {
-    if(F->size >= F->space)
+    if(F->size > F->space / 2)
         aumentaF(F);
     if(F->traces[F->last] != NULL)
         destroiTrace(F->traces[F->last]);
@@ -138,52 +92,22 @@ void DestroiFila(Fila F) {
     }
 }
 void ImprimeFila(Fila F) {
-    // printf("space: %d; size: %d\n", F->space, F->size);
+    printf("space: %d; size: %d\n", F->space, F->size);
     if(F->size == 0) {
         printf("A fila está vazia.\n");
     } else {
-        printf("Fila de tamanho %d com elementos %d\n", F->space, F->size);
         for (int i = 0; i < F->size; i++) {
             Trace elemento = F->traces[(F->first + i) % F->size];
-            printf("  elemento %d: %s, %d, %d, %d\n", i, elemento->nome,
+            printf("elemento %d: %s, %d, %d, %d\n", i, elemento->nome,
                                                        elemento->to,
                                                        elemento->dt,
                                                        elemento->deadline);
-            printf("    loc: %p\n", (void*) elemento->nome);
+            printf(" point: %p\n", (void*) elemento->nome);
         }
     }
 }
 
-
-int test_funcs() {
-    // char* n[] = {"teste", "lalala", "alo", "onde", "hello"};
-    // char* m[] = {"como", "lalala", "aqui", "teste", "hello"};
-
-    // Lista L = CriaLista();
-    // Lista LL = CriaLista();
-    // printf("criou lista\n");
-    // for (int i=0; i<5; i+=1) {
-        // InsereInicio(L, n[i]);
-        // InsereFim(LL, m[i]);
-    // }
-    // printf("inseriu 1\n");
-    // for (int i=0; i<5; i+=1) {
-        // InsereInicio(L, n[i]);
-        // InsereFim(LL, m[i]);
-    // }
-    // printf("inseriu 2\n");
-    // ImprimeLista(L);
-    // ImprimeLista(LL);
-    // printf("L: %p\n", (void*) L);
-    // for (int i = 0; i < 5; i++) {
-    //     int r = rank(L, m[i]);
-    //     printf("[%d]: %d; ", i, r);
-    // }
-    // printf("\n");
-
-    // DestroiLista(L);
-    // DestroiLista(LL);
-
+int teste_fila() {
     Fila F = CriaFila();
 
     printf("criou Fila\n");
@@ -197,30 +121,27 @@ int test_funcs() {
         exit(EXIT_FAILURE);
 
     while ((read = getline(&line, &len, fp)) != -1) {
-        // printf(" linha: %s\n", line);
+        printf(" linha: %s\n", line);
         Trace t = novoTrace(line);
         enqueue(F, t);
     }
-    free(line);
-    line = NULL;
+    printf("inseriu\n");
     fclose(fp);
-    // printf("inseriu\n");
 
-    // ImprimeFila(F);
-    // printf("F: %p\n", (void*) F);
+    ImprimeFila(F);
+    printf("F: %p\n", (void*) F);
 
     Trace elemento = dequeue(F);
     while(elemento != NULL) {
-        // ImprimeFila(F);
+        ImprimeFila(F);
         printf("elemento retirado: %s, %d, %d, %d\n\n", elemento->nome,
                                                       elemento->to,
                                                       elemento->dt,
                                                       elemento->deadline);
-        destroiTrace(elemento);
         elemento = dequeue(F);
     }
 
     DestroiFila(F);
 
-    return(0);
+    return 0;
 }

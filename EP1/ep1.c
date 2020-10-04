@@ -2,7 +2,7 @@
 
 int _debug = 0;
 
-void FirstComeFirst(const char * file_name){
+void FirstComeFirstServed(const char * file_name){
     FILE * fp;
     char * line = NULL;
     size_t len = 0;
@@ -93,7 +93,7 @@ int main(int argc, char const **argv) {
         _debug = 1;
 
     if (atoi(argv[1]) == 1)
-        FirstComeFirst(file_name);
+        FirstComeFirstServed(file_name);
     if (atoi(argv[1]) == 2)
         ShortestRemainingTime(file_name);
 }
