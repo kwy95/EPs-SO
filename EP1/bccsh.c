@@ -1,6 +1,12 @@
 
 #include "util.h"
-// #include "fila.h"
+
+#include <signal.h>
+
+#include <sys/types.h>
+
+#include <readline/readline.h>
+#include <readline/history.h>
 
 #define MAXLEN 100
 #define MAXARG 10
@@ -127,7 +133,7 @@ int parse_input(char** commands, char* buffer) {
             printf("muitos argumentos, encerrando execução\n");
             exit(1);
         }
-        printf ("temp: %s\n",temp);
+        // printf ("temp: %s\n",temp);
         strncpy(commands[i], temp, MAXLEN);
         i++;
         temp = strtok(NULL, " ");
@@ -152,10 +158,10 @@ int main(int argc, char const **argv) {
     //                                           strlen(cwd),      cwd);
     // printf("prompt: %s\n", prompt);
 
-    test_funcs();
+    // test_funcs();
 
     using_history();
-    while (0) {
+    while (1) {
         if (read_input(entrada, prompt))
             continue;
         parse_input(args, entrada);
@@ -165,15 +171,12 @@ int main(int argc, char const **argv) {
             /* Codigo do pai */
             // printf("Pai: %d\n", pid);
             wait(NULL);
-            // printf("terminou\n");
         }
         else {
             /* Codigo do filho */
             execcommand(args);
-            // printf("Filho\n");
             exit(0);
         }
-        // n*=10;
     }
     free(prompt);
     for(int i = 0; i < MAXARG; i++) {

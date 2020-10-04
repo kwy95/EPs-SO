@@ -20,6 +20,7 @@ Trace novoTrace(char* t) {
     novo->dt       = atoi(strtok_r(NULL, " ", &saveptr));
     novo->deadline = atoi(strtok_r(NULL, " ", &saveptr));
     novo->elapsed  = 0;
+    // novo->id = -1;
 
     printf("    criando: %p | %s\n", (void*) novo, novo->nome);
 
@@ -116,7 +117,7 @@ void enqueue(Fila F, Trace T) {
 }
 Trace dequeue(Fila F) {
     if(F->size <= 0) {
-        printf("Fila vazia\n");
+        // printf("Fila vazia\n");
         return NULL;
     }
 
@@ -129,6 +130,12 @@ Trace dequeue(Fila F) {
 
     return t;
 }
+Trace peek(Fila F) {
+    if(F->size <= 0)
+        return NULL;
+    return F->traces[F->first];
+}
+
 
 void DestroiFila(Fila F) {
     if(F != NULL) {

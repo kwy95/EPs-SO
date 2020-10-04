@@ -1,21 +1,13 @@
-#define  _GNU_SOURCE
+#define _GNU_SOURCE
 
 #ifndef _UTIL_H
 #define _UTIL_H
 
-#include <pthread.h>
-#include <signal.h>
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
-
-#include <sys/stat.h>
-#include <sys/types.h>
-#include <sys/wait.h>
-
-#include <readline/readline.h>
-#include <readline/history.h>
 
 // #define ABS(x) ((x) < 0 ? -(x) : (x))
 
@@ -25,6 +17,7 @@ typedef struct trace {
     int dt;
     int deadline;
     int elapsed;
+    // int id;
 } trace;
 typedef struct trace* Trace;
 
@@ -33,11 +26,11 @@ void atualizarTrace(Trace, int);
 void destroiTrace(Trace);
 void destroiTraceA(Trace*, int);
 
-typedef struct arg {
-    Trace process;
-    pthread_mutex_t cpu_access;
-} arg;
-typedef struct arg* Args;
+// typedef struct arg {
+//     Trace process;
+//     pthread_mutex_t cpu_access;
+// } arg;
+// typedef struct arg* Args;
 
 typedef struct fila {
     Trace* traces;
@@ -51,6 +44,7 @@ typedef struct fila* Fila;
 Fila CriaFila();
 void enqueue(Fila, Trace);
 Trace dequeue(Fila);
+Trace peek(Fila);
 void DestroiFila(Fila);
 void ImprimeFila(Fila);
 
