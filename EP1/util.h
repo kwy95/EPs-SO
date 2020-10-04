@@ -10,27 +10,31 @@
 #include <unistd.h>
 
 // #define ABS(x) ((x) < 0 ? -(x) : (x))
+#define TSCALE 1000000000
+
+void checkPtr(void*);
 
 typedef struct trace {
     char* nome;
     int to;
     int dt;
     int deadline;
-    int elapsed;
-    // int id;
+    // ---------
+    long elapsed;
+    int id;
 } trace;
 typedef struct trace* Trace;
 
 Trace novoTrace(char*);
-void atualizarTrace(Trace, int);
+void atualizarTrace(Trace, long);
 void destroiTrace(Trace);
 void destroiTraceA(Trace*, int);
 
-// typedef struct arg {
-//     Trace process;
-//     pthread_mutex_t cpu_access;
-// } arg;
-// typedef struct arg* Args;
+typedef struct arg {
+    Trace process;
+    useconds_t allowed;
+} arg;
+typedef struct arg* Args;
 
 typedef struct fila {
     Trace* traces;
@@ -38,6 +42,7 @@ typedef struct fila {
     int space;
     int first;
     int last;
+    int n_id;
 } fila;
 typedef struct fila* Fila;
 

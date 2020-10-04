@@ -2,12 +2,17 @@
 
 #include <pthread.h>
 #include <signal.h>
+#include <time.h>
 
 #include <sys/stat.h>
 #include <sys/types.h>
 #include <sys/wait.h>
 
 int _debug = 0;
+int _sair = 0;
+long _disponivel = 0;
+clock_t _t0;
+pthread_mutex_t* _mutexes;
 
 Fila init_fila(const char* file_name) {
     FILE * fp;
@@ -33,21 +38,59 @@ Fila init_fila(const char* file_name) {
 
 void *proc_sim(void* p) {
     Trace proc = (Trace) p;
-    while(0) {};
+    while(1) {
+        pthread_mutex_lock(&_mutexes[proc->id]);
+
+        printf("rodando proc %s", proc->nome);
+        while(1) {
+            if(_sair) {
+                pthread_mutex_unlock(&_mutexes[proc->id]);
+                break;
+            }
+        }
+        if(_sair) {
+            sleep(1);
+            continue;
+        }
+
+        pthread_mutex_unlock(&_mutexes[proc->id]);
+        break;
+    };
 
     return NULL;
 }
 
 void FirstComeFirstServed(const char * file_name){
     Fila processos = init_fila(file_name);
+    int N = processos->size;
 
-    pthread_t threads[processos->size];
+    pthread_t threads[N];//= (pthread_t*) malloc(N * sizeof(pthread_t)); checkPtr(threads);
 
-    int time = 0;
-    // int total_lines = 0;
-    int wait_time = 0;
-    while (0) {
+    _mutexes = (pthread_mutex_t*) malloc(N * sizeof(pthread_mutex_t)); checkPtr(_mutexes);
+    for (int i = 0; i < N; i++) {
+        pthread_mutex_init(&_mutexes[i], NULL);
+        pthread_mutex_lock(&_mutexes[i]);
+    }
 
+    _t0 = clock();
+
+    while (peek(processos) != NULL) {
+        Fila escalonador = CriaFila();
+        time_t t = time(NULL) - _t0;
+
+        while(peek(processos)->to <= t) {
+            Trace tr = dequeue(processos);
+            pthread_create(&threads[tr->id], NULL, proc_sim, tr);
+            enqueue(escalonador, tr);
+            if(_debug) {
+                fprintf(stderr, "O processo %s acabou de chegar no sistema com a linha:\n    %s %d %d %d\n",
+                                tr->nome, tr->nome, tr->to, tr->dt, tr->deadline);
+            }
+        }
+
+        while(peek(escalonador)->to <= t) {
+
+        }
         // if (time > traceroute.to)
         //     wait_time += time - traceroute.to;
         // while(time < traceroute.to){
@@ -64,7 +107,7 @@ void FirstComeFirstServed(const char * file_name){
     }
 
 
-    printf("%d\n", wait_time);
+    // printf("%d\n", wait_time);
     // printf("%f\n", (float) wait_time/total_lines);
 
 }

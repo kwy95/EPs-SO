@@ -20,18 +20,18 @@ Trace novoTrace(char* t) {
     novo->dt       = atoi(strtok_r(NULL, " ", &saveptr));
     novo->deadline = atoi(strtok_r(NULL, " ", &saveptr));
     novo->elapsed  = 0;
-    // novo->id = -1;
+    novo->id = -1;
 
-    printf("    criando: %p | %s\n", (void*) novo, novo->nome);
+    // printf("    criando: %p | %s\n", (void*) novo, novo->nome);
 
     return novo;
 }
-void atualizarTrace(Trace t,int dt) {
+void atualizarTrace(Trace t,long dt) {
     t->elapsed += dt;
 }
 void destroiTrace(Trace t) {
     if (t != NULL) {
-        printf("    destruindo: %p | %s\n", (void*) t, t->nome);
+        // printf("    destruindo: %p | %s\n", (void*) t, t->nome);
         free(t->nome);
         t->nome = NULL;
         free(t);
@@ -58,6 +58,7 @@ Fila CriaFila() {
     F->space     = 1;
     F->first     = 0;
     F->last      = 0;
+    F->n_id      = 0;
 
     return F;
 }
@@ -73,6 +74,8 @@ void aumentaF(Fila F) {
     for (int i = F->size; i < new_space; i++) {
         new_array[i] = NULL;
     }
+    printf("\n  aumentou  \n");
+
 
     Trace* old = F->traces;
     // int old_space = F->space;
@@ -95,6 +98,8 @@ void diminuiF(Fila F) {
     for (int i = F->size; i < new_space; i++) {
         new_array[i] = NULL;
     }
+    printf("\n  diminuiu  \n");
+
 
     Trace* old = F->traces;
     // int old_space = F->space;
@@ -109,8 +114,12 @@ void diminuiF(Fila F) {
 void enqueue(Fila F, Trace T) {
     if(F->size >= F->space)
         aumentaF(F);
-    if(F->traces[F->last] != NULL)
-        destroiTrace(F->traces[F->last]);
+    // if(F->traces[F->last] != NULL)
+    //     destroiTrace(F->traces[F->last]);
+    if(T->id == -1) {
+        T->id = F->n_id;
+        F->n_id++;
+    }
     F->traces[F->last] = T;
     F->size++;
     F->last = (F->last + 1) % F->space;
@@ -149,47 +158,20 @@ void ImprimeFila(Fila F) {
     if(F->size == 0) {
         printf("A fila está vazia.\n");
     } else {
-        printf("Fila de tamanho %d com elementos %d\n", F->space, F->size);
+        printf("Fila de tamanho %d com %d elementos\n", F->space, F->size);
+        printf("  first: %d; last: %d | n_id: %d\n", F->first, F->last, F->n_id);
         for (int i = 0; i < F->size; i++) {
-            Trace elemento = F->traces[(F->first + i) % F->size];
-            printf("  elemento %d: %s, %d, %d, %d\n", i, elemento->nome,
-                                                       elemento->to,
-                                                       elemento->dt,
-                                                       elemento->deadline);
-            printf("    loc: %p\n", (void*) elemento->nome);
+            Trace elemento = F->traces[(F->first + i) % F->space];
+            printf("  elemento %d: [ %s, %d, %d, %d, %ld, %d ]\n", i,
+                        elemento->nome,     elemento->to,      elemento->dt,
+                        elemento->deadline, elemento->elapsed, elemento->id);
+            // printf("    loc: %p\n", (void*) elemento);
         }
     }
 }
 
 
 int test_funcs() {
-    // char* n[] = {"teste", "lalala", "alo", "onde", "hello"};
-    // char* m[] = {"como", "lalala", "aqui", "teste", "hello"};
-
-    // Lista L = CriaLista();
-    // Lista LL = CriaLista();
-    // printf("criou lista\n");
-    // for (int i=0; i<5; i+=1) {
-        // InsereInicio(L, n[i]);
-        // InsereFim(LL, m[i]);
-    // }
-    // printf("inseriu 1\n");
-    // for (int i=0; i<5; i+=1) {
-        // InsereInicio(L, n[i]);
-        // InsereFim(LL, m[i]);
-    // }
-    // printf("inseriu 2\n");
-    // ImprimeLista(L);
-    // ImprimeLista(LL);
-    // printf("L: %p\n", (void*) L);
-    // for (int i = 0; i < 5; i++) {
-    //     int r = rank(L, m[i]);
-    //     printf("[%d]: %d; ", i, r);
-    // }
-    // printf("\n");
-
-    // DestroiLista(L);
-    // DestroiLista(LL);
 
     Fila F = CriaFila();
 
@@ -203,7 +185,9 @@ int test_funcs() {
     if (fp == NULL)
         exit(EXIT_FAILURE);
 
+    printf("\nEntrando dados\n");
     while ((read = getline(&line, &len, fp)) != -1) {
+        ImprimeFila(F);
         // printf(" linha: %s\n", line);
         Trace t = novoTrace(line);
         enqueue(F, t);
@@ -213,18 +197,21 @@ int test_funcs() {
     fclose(fp);
     // printf("inseriu\n");
 
-    // ImprimeFila(F);
+    ImprimeFila(F);
     // printf("F: %p\n", (void*) F);
+
+    printf("\nRemovendo dados\n");
 
     Trace elemento = dequeue(F);
     while(elemento != NULL) {
-        // ImprimeFila(F);
-        printf("elemento retirado: %s, %d, %d, %d\n\n", elemento->nome,
+        ImprimeFila(F);
+        printf("\nelemento retirado: %s, %d, %d, %d\n\n", elemento->nome,
                                                       elemento->to,
                                                       elemento->dt,
                                                       elemento->deadline);
         destroiTrace(elemento);
         elemento = dequeue(F);
+        printf("\n\n");
     }
 
     DestroiFila(F);
