@@ -10,7 +10,6 @@
 #include <sys/wait.h>
 
 int _debug = 0;
-// int _sair = 0;
 int _contexto = 0;
 pthread_mutex_t* _mutexes;
 pthread_cond_t* _conds;
@@ -18,7 +17,6 @@ int* _first_exec;
 FILE* output;
 
 struct timespec _t0;
-// struct timespec _disponivel, _resto;
 struct timespec _quantum = { 0, QUANTUM };
 
 Fila init_fila(const char* file_name) {
@@ -87,7 +85,6 @@ pthread_t* escalonador_init(Fila P) {
 }
 
 void* FirstComeFirstServed(void* proc) {
-    // fprintf(stderr, "    Iniciou-se FCFS\n");
     Fila processos = (Fila) proc;
     int N = processos->size;
     int curId = -1;
@@ -101,7 +98,6 @@ void* FirstComeFirstServed(void* proc) {
         struct timespec ts;
         clock_gettime(CLOCK_REALTIME, &ts);
         int t = time_dif(ts, _t0);
-        // printTime(ts);
 
         /** Chegada de processos no sistema */
         while(!empty(processos) && t >= peek(processos)->t0) {
@@ -137,7 +133,7 @@ void* FirstComeFirstServed(void* proc) {
                     fprintf(stderr, "O processo %s acabou de encerrar sua execução, a linha de saída é:\n  %s %d %d\n",
                                         cur->nome, cur->nome, t, t - _first_exec[curId]);
                 }
-                fprintf(output, "%s %d %d %d\n", cur->nome, t, t - _first_exec[curId], cur->deadline);
+                fprintf(output, "%s %d %d\n", cur->nome, t, t - _first_exec[curId]);
                 pthread_mutex_unlock(&_mutexes[curId]);
                 destroiTrace(cur);
 
@@ -162,7 +158,6 @@ void* FirstComeFirstServed(void* proc) {
 
             /** Continua execução do processo */
             } else {
-                // pthread_mutex_lock(&_mutexes[curId]);
                 pthread_cond_signal(&_conds[curId]);
                 pthread_mutex_unlock(&_mutexes[curId]);
             }
@@ -185,7 +180,6 @@ void* FirstComeFirstServed(void* proc) {
 }
 
 void* ShortestRemainingTimeNext(void* proc) {
-    // fprintf(stderr, "    Iniciou-se RR\n");
     Fila processos = (Fila) proc;
     int N = processos->size;
     int curId = -1;
@@ -234,7 +228,7 @@ void* ShortestRemainingTimeNext(void* proc) {
                     fprintf(stderr, "O processo %s acabou de encerrar sua execução, a linha de saída é:\n  %s %d %d\n",
                                         cur->nome, cur->nome, t, t - _first_exec[curId]);
                 }
-                fprintf(output, "%s %d %d %d\n", cur->nome, t, t - _first_exec[curId], cur->deadline);
+                fprintf(output, "%s %d %d\n", cur->nome, t, t - _first_exec[curId]);
                 pthread_mutex_unlock(&_mutexes[curId]);
                 destroiTrace(cur);
 
@@ -301,7 +295,6 @@ void* ShortestRemainingTimeNext(void* proc) {
 }
 
 void* RoundRobin(void* proc) {
-    // fprintf(stderr, "    Iniciou-se RR\n");
     Fila processos = (Fila) proc;
     int N = processos->size;
     int curId = -1;
@@ -350,7 +343,7 @@ void* RoundRobin(void* proc) {
                     fprintf(stderr, "O processo %s acabou de encerrar sua execução, a linha de saída é:\n  %s %d %d\n",
                                         cur->nome, cur->nome, t, t - _first_exec[curId]);
                 }
-                fprintf(output, "%s %d %d %d\n", cur->nome, t, t - _first_exec[curId], cur->deadline);
+                fprintf(output, "%s %d %d\n", cur->nome, t, t - _first_exec[curId]);
                 pthread_mutex_unlock(&_mutexes[curId]);
                 destroiTrace(cur);
 
@@ -369,6 +362,7 @@ void* RoundRobin(void* proc) {
                         fprintf(stderr, "O processo %s comecou a rodar na CPU %d\n", cur->nome, 1);
                     }
                 } else {
+                    pthread_mutex_unlock(&_mutexes[curId]);
                     curId = -1;
                 }
 
@@ -424,7 +418,6 @@ int main(int argc, char const **argv) {
         _debug = 1;
 
     Fila processos = init_fila(file_name);
-    // ImprimeFila(processos);
     output = fopen(out_file, "w"); checkPtr(output);
 
     pthread_t escalonador;

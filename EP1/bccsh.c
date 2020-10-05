@@ -119,7 +119,6 @@ int read_input(char* str,const char* prompt) {
     if (strlen(buf) != 0) {
         add_history(buf);
 
-        // parse_input(commands, buf);
         strcpy(str, buf);
         return 0;
     } else {
@@ -136,7 +135,7 @@ int parse_input(char** commands, char* buffer) {
             printf("muitos argumentos, encerrando execução\n");
             exit(1);
         }
-        // printf ("temp: %s\n",temp);
+
         strncpy(commands[i], temp, MAXLEN);
         i++;
         temp = strtok_r(NULL, " ", &saveptr);
@@ -146,7 +145,7 @@ int parse_input(char** commands, char* buffer) {
 }
 
 int main(int argc, char const **argv) {
-    // printf("%s\n", argv[0]);
+
     char entrada[MAXLEN*MAXARG + 1];
     char* args[MAXARG + 1];
     for(int i = 0; i < MAXARG; i++) {
@@ -157,12 +156,6 @@ int main(int argc, char const **argv) {
 
     char* prompt = prompt_gen();
 
-    // printf("user: %ld | %s\ncwd: %ld | %s\n", strlen(username), username,
-    //                                           strlen(cwd),      cwd);
-    // printf("prompt: %s\n", prompt);
-
-    // test_funcs();
-
     using_history();
     while (1) {
         if (read_input(entrada, prompt))
@@ -171,12 +164,9 @@ int main(int argc, char const **argv) {
 
         pid_t pid = fork();
         if (pid != 0) {
-            /* Codigo do pai */
-            // printf("Pai: %d\n", pid);
             wait(NULL);
         }
         else {
-            /* Codigo do filho */
             execcommand(args);
             exit(0);
         }

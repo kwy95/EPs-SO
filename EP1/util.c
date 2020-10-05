@@ -41,9 +41,6 @@ Trace novoTrace(char* t) {
     novo->deadline = atoi(strtok_r(NULL, " ", &saveptr));
     novo->remaining  = novo->dt;
     novo->nremaining = 0;
-    novo->id       = -1;
-
-    // printf("    criando: %p | %s\n", (void*) novo, novo->nome);
 
     return novo;
 }
@@ -58,7 +55,6 @@ void atualizarTrace(Trace t, struct timespec dt) {
 }
 void destroiTrace(Trace t) {
     if (t != NULL) {
-        // printf("    destruindo: %p | %s\n", (void*) t, t->nome);
         free(t->nome);
         t->nome = NULL;
         free(t);
@@ -99,16 +95,13 @@ void aumentaF(Fila F) {
 
     for (int i = 0; i < F->size; i++) {
         new_array[i] = F->traces[(F->first + i) % F->space];
-        // memcpy(new_array[i], F->traces[(F->first + i) % F->space], sizeof(Trace));
     }
     for (int i = F->size; i < new_space; i++) {
         new_array[i] = NULL;
     }
-    // printf("\n  aumentou  \n");
 
 
     Trace* old = F->traces;
-    // int old_space = F->space;
     F->traces = new_array;
     F->space = new_space;
     F->first = 0;
@@ -123,16 +116,13 @@ void diminuiF(Fila F) {
 
     for (int i = 0; i < F->size; i++) {
         new_array[i] = F->traces[(F->first + i) % F->space];
-        // memcpy(new_array[i], F->traces[(F->first + i) % F->space], sizeof(Trace));
     }
     for (int i = F->size; i < new_space; i++) {
         new_array[i] = NULL;
     }
-    // printf("\n  diminuiu  \n");
 
 
     Trace* old = F->traces;
-    // int old_space = F->space;
     F->traces = new_array;
     F->space = new_space;
     F->first = 0;
@@ -148,7 +138,6 @@ int empty(Fila F) {
 double remaining(Trace T) {
     double t = T->remaining;
     t = t + ((double) T->nremaining / (double) TSCALE);
-    // printf("\n rem: id: %d t: %f\n", id, t);
     return t;
 }
 
@@ -158,6 +147,7 @@ double rem(Fila F, int id) {
     return remaining(t);
 }
 
+/** funções de heap, evite misturar com as de fila */
 int parent(Fila F, int id) {
     if(id > 0 && id < F->size)
         return (id - 1) / 2;
@@ -175,9 +165,7 @@ int filho_dir(Fila F, int id) {
 }
 
 void ascender(Fila F, int id) {
-    // int id = F->size - 1;
     while(id > 0 && rem(F, id) < rem(F, parent(F,id))) {
-        // printf("\n entrou asc \n");
         swap(F, indice(F, id), indice(F, parent(F,id)));
         id = parent(F, id);
     }
@@ -189,7 +177,6 @@ void descender(Fila F) {
 
     int menor = id;
     while(id_l != -1 || id_r != -1) {
-        // printf("\n entrou desc \n");
         if(id_l != -1 && rem(F, menor) > rem(F, id_l))
             menor = id_l;
         if(id_r != -1 && rem(F, menor) > rem(F, id_r))
@@ -272,7 +259,6 @@ void DestroiFila(Fila F) {
     }
 }
 void ImprimeFila(Fila F) {
-    // printf("space: %d; size: %d\n", F->space, F->size);
     if(empty(F)) {
         printf("A fila está vazia.\n");
     } else {
@@ -283,7 +269,6 @@ void ImprimeFila(Fila F) {
             printf("  elemento %d: [ %s, %d, %ld, %d, %ld, %d ]\n", i,
                         elemento->nome,     elemento->t0,      elemento->dt,
                         elemento->deadline, elemento->remaining, elemento->id);
-            // printf("    loc: %p\n", (void*) elemento);
         }
     }
 }

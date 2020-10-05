@@ -1,0 +1,13 @@
+#!/bin/bash
+
+E=${1:-1}
+N=10
+TRACE=small.txt
+OUT=./outputs/testeS
+
+for i in {1..$N}
+do
+	echo "iter $i"
+	./ep1 $E $TRACE "$OUT$i.txt"
+done
+
