@@ -149,7 +149,7 @@ void* FirstComeFirstServed(void* proc) {
                     fprintf(stderr, "O processo %s acabou de encerrar sua execução, a linha de saída é:\n  %s %d %d\n",
                                         cur->nome, cur->nome, t, t - _first_exec[curId]);
                 }
-                fprintf(output, "%s %d %d\n", cur->nome, t, t - _first_exec[curId]);
+                fprintf(output, "%s %d %d %d\n", cur->nome, t, t - _first_exec[curId], cur->deadline);
                 pthread_mutex_unlock(&_mutexes[curId]);
                 destroiTrace(cur);
 
@@ -362,7 +362,7 @@ void* RoundRobin(void* proc) {
                     fprintf(stderr, "O processo %s acabou de encerrar sua execução, a linha de saída é:\n  %s %d %d\n",
                                         cur->nome, cur->nome, t, t - _first_exec[curId]);
                 }
-                fprintf(output, "%s %d %d\n", cur->nome, t, t - _first_exec[curId]);
+                fprintf(output, "%s %d %d %d\n", cur->nome, t, t - _first_exec[curId], cur->deadline);
                 pthread_mutex_unlock(&_mutexes[curId]);
                 destroiTrace(cur);
 
