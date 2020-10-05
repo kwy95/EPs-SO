@@ -21,7 +21,7 @@ struct timespec _t0;
 // struct timespec _disponivel, _resto;
 struct timespec _quantum = { 0, QUANTUM };
 
-Fila init_fila(const char* file_name, int heap) {
+Fila init_fila(const char* file_name) {
     FILE * fp;
     char * line = NULL;
     size_t len = 0;
@@ -34,11 +34,7 @@ Fila init_fila(const char* file_name, int heap) {
 
     while ((read = getline(&line, &len, fp)) != -1) {
         Trace t = novoTrace(line);
-        if(heap) {
-            insert(F, t);
-        } else {
-            enqueue(F, t);
-        }
+        enqueue(F, t);
     }
     free(line);
     line = NULL;
@@ -65,14 +61,6 @@ void *proc_sim(void* p) {
         pthread_cond_wait(&_conds[proc->id], &_mutexes[proc->id]);
         nanosleep(&_quantum, NULL);
         atualizarTrace(proc, _quantum);
-        // struct timespec resto;
-        // if(nanosleep(&_quantum, &resto) != 0){
-        //     fprintf(stderr, "PANICO! sleep interrompido!\n");
-        //     atualizarTrace(proc, resto);
-        // } else {
-        //     atualizarTrace(proc, _quantum);
-        //     fprintf(stderr, "\n**  [%ld] proc remain: %ld s %ld ns\n", proc->dt, proc->remaining, proc->nremaining);
-        // }
     }
     pthread_mutex_unlock(&_mutexes[proc->id]);
 
@@ -216,7 +204,7 @@ void* ShortestRemainingTimeNext(void* proc) {
         while(!empty(processos) && t >= peek(processos)->t0) {
             Trace tr = dequeue(processos);
             pthread_create(&threads[tr->id], NULL, proc_sim, tr);
-            enqueue(escalonador, tr);
+            insert(escalonador, tr);
             if(_debug) {
                 fprintf(stderr, "[%d] O processo %s acabou de chegar no sistema com a linha:\n    %s %d %ld %d\n",
                                 t, tr->nome, tr->nome, tr->t0, tr->dt, tr->deadline);
@@ -225,7 +213,7 @@ void* ShortestRemainingTimeNext(void* proc) {
 
         /** Nenhum processo rodando, 1 ou mais na espera */
         if (curId == -1 && !empty(escalonador)) {
-            cur = dequeue(escalonador);
+            cur = get_min(escalonador);
             curId = cur->id;
             set_first(curId, t);
 
@@ -246,14 +234,14 @@ void* ShortestRemainingTimeNext(void* proc) {
                     fprintf(stderr, "O processo %s acabou de encerrar sua execução, a linha de saída é:\n  %s %d %d\n",
                                         cur->nome, cur->nome, t, t - _first_exec[curId]);
                 }
-                fprintf(output, "%s %d %d\n", cur->nome, t, t - _first_exec[curId]);
+                fprintf(output, "%s %d %d %d\n", cur->nome, t, t - _first_exec[curId], cur->deadline);
                 pthread_mutex_unlock(&_mutexes[curId]);
                 destroiTrace(cur);
 
                 /** Executa pŕoximo processo */
                 if (!empty(escalonador)) {
                     _contexto++;
-                    cur = dequeue(escalonador);
+                    cur = get_min(escalonador);
                     curId = cur->id;
                     set_first(curId, t);
 
@@ -264,24 +252,19 @@ void* ShortestRemainingTimeNext(void* proc) {
                         fprintf(stderr, "Mudança de contexto! Total até o momento: %d\n", _contexto);
                         fprintf(stderr, "O processo %s comecou a rodar na CPU %d\n", cur->nome, 1);
                     }
+                /** nada a fazer por enquanto */
                 } else {
                     curId = -1;
                 }
 
             /** Processo ainda não terminou */
             } else {
-
-                /** Continua a execução do processo */
-                if(empty(escalonador)) {
-                    pthread_cond_signal(&_conds[curId]);
-                    pthread_mutex_unlock(&_mutexes[curId]);
-
                 /** Retorna processo pra fila e executa o próximo */
-                } else {
+                if(!empty(escalonador) && remaining(peek(escalonador)) < remaining(cur)) {
                     _contexto++;
                     pthread_mutex_unlock(&_mutexes[curId]);
-                    enqueue(escalonador, cur);
-                    cur = dequeue(escalonador);
+                    insert(escalonador, cur);
+                    cur = get_min(escalonador);
                     curId = cur->id;
                     set_first(curId, t);
 
@@ -292,6 +275,11 @@ void* ShortestRemainingTimeNext(void* proc) {
                         fprintf(stderr, "Mudança de contexto! Total até o momento: %d\n", _contexto);
                         fprintf(stderr, "O processo %s comecou a rodar na CPU %d\n", cur->nome, 1);
                     }
+
+                /** Continua a execução do processo */
+                } else {
+                    pthread_cond_signal(&_conds[curId]);
+                    pthread_mutex_unlock(&_mutexes[curId]);
                 }
             }
         }
@@ -435,12 +423,8 @@ int main(int argc, char const **argv) {
     if(argc == 5 && !strcmp(argv[4], "d"))
         _debug = 1;
 
-    int heap = 0;
-    if (mode == 2)
-        heap = 1;
-
-    Fila processos = init_fila(file_name, heap);
-    ImprimeFila(processos);
+    Fila processos = init_fila(file_name);
+    // ImprimeFila(processos);
     output = fopen(out_file, "w"); checkPtr(output);
 
     pthread_t escalonador;

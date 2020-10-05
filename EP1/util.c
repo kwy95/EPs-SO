@@ -145,12 +145,17 @@ int empty(Fila F) {
     return F->size <= 0;
 }
 
-double remaining(Fila F, int id) {
-    int i = indice(F, id);
-    double t = F->traces[i]->remaining;
-    t = t + ((double) F->traces[i]->nremaining / (double) TSCALE);
-    printf("\n rem: id: %d t: %f\n", id, t);
+double remaining(Trace T) {
+    double t = T->remaining;
+    t = t + ((double) T->nremaining / (double) TSCALE);
+    // printf("\n rem: id: %d t: %f\n", id, t);
     return t;
+}
+
+double rem(Fila F, int id) {
+    int i = indice(F, id);
+    Trace t = F->traces[i];
+    return remaining(t);
 }
 
 int parent(Fila F, int id) {
@@ -171,8 +176,8 @@ int filho_dir(Fila F, int id) {
 
 void ascender(Fila F, int id) {
     // int id = F->size - 1;
-    while(id > 0 && remaining(F, id) < remaining(F, parent(F,id))) {
-        printf("\n entrou asc \n");
+    while(id > 0 && rem(F, id) < rem(F, parent(F,id))) {
+        // printf("\n entrou asc \n");
         swap(F, indice(F, id), indice(F, parent(F,id)));
         id = parent(F, id);
     }
@@ -184,10 +189,10 @@ void descender(Fila F) {
 
     int menor = id;
     while(id_l != -1 || id_r != -1) {
-        printf("\n entrou desc \n");
-        if(id_l != -1 && remaining(F, menor) > remaining(F, id_l))
+        // printf("\n entrou desc \n");
+        if(id_l != -1 && rem(F, menor) > rem(F, id_l))
             menor = id_l;
-        if(id_r != -1 && remaining(F, menor) > remaining(F, id_r))
+        if(id_r != -1 && rem(F, menor) > rem(F, id_r))
             menor = id_r;
 
         if(menor == id)
@@ -211,8 +216,10 @@ Trace get_min(Fila F) {
     }
 
     Trace min = F->traces[F->first];
-    F->traces[F->first] = F->traces[F->last - 1];
-    F->traces[--F->last] = NULL;
+    F->traces[F->first] = F->traces[indice(F, F->size - 1)];
+    F->traces[indice(F, F->size - 1)] = NULL;
+    F->last = (F->last + F->space - 1) % F->space; // equivalente a subtrair
+
     F->size--;
 
     descender(F);

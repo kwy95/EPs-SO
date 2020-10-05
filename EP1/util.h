@@ -47,6 +47,8 @@ typedef struct fila* Fila;
 
 Fila CriaFila();
 int empty(Fila);
+double remaining(Trace);
+
 Trace peek(Fila);
 
 void insert(Fila, Trace);
