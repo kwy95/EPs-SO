@@ -21,7 +21,7 @@ struct timespec _t0;
 // struct timespec _disponivel, _resto;
 struct timespec _quantum = { 0, QUANTUM };
 
-Fila init_fila(const char* file_name) {
+Fila init_fila(const char* file_name, int heap) {
     FILE * fp;
     char * line = NULL;
     size_t len = 0;
@@ -34,7 +34,11 @@ Fila init_fila(const char* file_name) {
 
     while ((read = getline(&line, &len, fp)) != -1) {
         Trace t = novoTrace(line);
-        enqueue(F, t);
+        if(heap) {
+            insert(F, t);
+        } else {
+            enqueue(F, t);
+        }
     }
     free(line);
     line = NULL;
@@ -431,7 +435,12 @@ int main(int argc, char const **argv) {
     if(argc == 5 && !strcmp(argv[4], "d"))
         _debug = 1;
 
-    Fila processos = init_fila(file_name);
+    int heap = 0;
+    if (mode == 2)
+        heap = 1;
+
+    Fila processos = init_fila(file_name, heap);
+    ImprimeFila(processos);
     output = fopen(out_file, "w"); checkPtr(output);
 
     pthread_t escalonador;

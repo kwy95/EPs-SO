@@ -8,11 +8,11 @@ void checkPtr(void* ptr) {
     }
 }
 
-void swap( Trace a, Trace b ) {
+void swap(Fila F, int id1, int id2) {
     Trace t;
-    t = a;
-    a = b;
-    b = t;
+    t = F->traces[id1];
+    F->traces[id1] = F->traces[id2];
+    F->traces[id2] = t;
 }
 
 int indice(Fila F, int i) {
@@ -77,7 +77,6 @@ void destroiTraceA(Trace* T, int size) {
 int trace_done(Trace t) {
     return (t->remaining <= 0 && t->nremaining <= 0);
 }
-
 
 
 Fila CriaFila() {
@@ -150,48 +149,51 @@ double remaining(Fila F, int id) {
     int i = indice(F, id);
     double t = F->traces[i]->remaining;
     t = t + ((double) F->traces[i]->nremaining / (double) TSCALE);
+    printf("\n rem: id: %d t: %f\n", id, t);
     return t;
 }
 
 int parent(Fila F, int id) {
-    if(id > 1 && id < F->size)
-        return id / 2;
+    if(id > 0 && id < F->size)
+        return (id - 1) / 2;
     return -1;
 }
 int filho_esq(Fila F, int id) {
-    if(2*id < F->size && id >= 1)
-        return 2*id;
+    if((2 * id) + 1 < F->size && id >= 0)
+        return (2 * id) + 1;
     return -1;
 }
 int filho_dir(Fila F, int id) {
-    if(((2 * id) + 1) < F->size && id >= 1)
-        return ((2 * id) + 1);
+    if((2 * id) + 2 < F->size && id >= 0)
+        return (2 * id) + 2;
     return -1;
 }
 
-void ascender(Fila F) {
-    int id = F->size - 1;
-    while(id > 0 && F->traces[indice(F, id)] < F->traces[indice(F, parent(F,id))]) {
-        swap(F->traces[indice(F, id)], F->traces[indice(F, parent(F,id))]);
+void ascender(Fila F, int id) {
+    // int id = F->size - 1;
+    while(id > 0 && remaining(F, id) < remaining(F, parent(F,id))) {
+        printf("\n entrou asc \n");
+        swap(F, indice(F, id), indice(F, parent(F,id)));
         id = parent(F, id);
     }
 }
 void descender(Fila F) {
     int id = 0;
-    int id_l = 1 ? F->size > 1 : -1;
-    int id_r = 2 ? F->size > 2 : -1;
+    int id_l = filho_esq(F, id);
+    int id_r = filho_dir(F, id);
 
     int menor = id;
-    while((id_l != -1 || id_r != -1)) {
-        if(id_l != -1 && F->traces[indice(F, menor)] > F->traces[indice(F, id_l)])
+    while(id_l != -1 || id_r != -1) {
+        printf("\n entrou desc \n");
+        if(id_l != -1 && remaining(F, menor) > remaining(F, id_l))
             menor = id_l;
-        if(id_r != -1 && F->traces[indice(F, menor)] > F->traces[indice(F, id_r)])
+        if(id_r != -1 && remaining(F, menor) > remaining(F, id_r))
             menor = id_r;
 
         if(menor == id)
             return;
 
-        swap(F->traces[indice(F, id)], F->traces[indice(F, menor)]);
+        swap(F, indice(F, id), indice(F, menor));
 
         id = menor;
         id_l = filho_esq(F, id);
@@ -199,11 +201,32 @@ void descender(Fila F) {
     }
 }
 
+void insert(Fila F, Trace T) {
+    enqueue(F, T);
+    ascender(F, F->size - 1);
+}
+Trace get_min(Fila F) {
+    if(empty(F)) {
+        return NULL;
+    }
+
+    Trace min = F->traces[F->first];
+    F->traces[F->first] = F->traces[F->last - 1];
+    F->traces[--F->last] = NULL;
+    F->size--;
+
+    descender(F);
+
+    if(F->size < F->space / 4)
+        diminuiF(F);
+
+    return min;
+}
+
 void enqueue(Fila F, Trace T) {
     if(F->size >= F->space)
         aumentaF(F);
-    // if(F->traces[F->last] != NULL)
-    //     destroiTrace(F->traces[F->last]);
+
     if(T->id == -1) {
         T->id = F->n_id;
         F->n_id++;
@@ -214,7 +237,6 @@ void enqueue(Fila F, Trace T) {
 }
 Trace dequeue(Fila F) {
     if(empty(F)) {
-        // printf("Fila vazia\n");
         return NULL;
     }
 
@@ -233,6 +255,7 @@ Trace peek(Fila F) {
         return NULL;
     return F->traces[F->first];
 }
+
 
 void DestroiFila(Fila F) {
     if(F != NULL) {
@@ -278,7 +301,8 @@ int test_funcs() {
         ImprimeFila(F);
         // printf(" linha: %s\n", line);
         Trace t = novoTrace(line);
-        enqueue(F, t);
+        // enqueue(F, t);
+        insert(F, t);
     }
     free(line);
     line = NULL;
@@ -290,7 +314,8 @@ int test_funcs() {
 
     printf("\nRemovendo dados\n");
 
-    Trace elemento = dequeue(F);
+    // Trace elemento = dequeue(F);
+    Trace elemento = get_min(F);
     while(elemento != NULL) {
         ImprimeFila(F);
         printf("\nelemento retirado: %s, %d, %ld, %d\n\n", elemento->nome,
@@ -298,7 +323,8 @@ int test_funcs() {
                                                       elemento->dt,
                                                       elemento->deadline);
         destroiTrace(elemento);
-        elemento = dequeue(F);
+        // elemento = dequeue(F);
+        elemento = get_min(F);
         printf("\n\n");
     }
 

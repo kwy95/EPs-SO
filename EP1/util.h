@@ -47,9 +47,14 @@ typedef struct fila* Fila;
 
 Fila CriaFila();
 int empty(Fila);
+Trace peek(Fila);
+
+void insert(Fila, Trace);
+Trace get_min(Fila);
+
 void enqueue(Fila, Trace);
 Trace dequeue(Fila);
-Trace peek(Fila);
+
 void DestroiFila(Fila);
 void ImprimeFila(Fila);
 
