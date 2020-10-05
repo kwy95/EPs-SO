@@ -4,7 +4,6 @@
 #include <time.h>
 
 #define PROB 3 /* A probabilidade de dois processos chegarem juntos é 1/(PROB * (1-PROB)) */
-#define TEMPO 10 /* Tempo máximo - 1 que um processo pode demorar */
 #define PRIORIDADE 20 /* Tempo extra máximo que será somado ao deadline mínimo */
 
 int main (int argc, char ** argv) {
@@ -13,6 +12,7 @@ int main (int argc, char ** argv) {
 
 	int numberOfProcesses;
 	int traceSize = atoi(argv[1]);
+	int TEMPO = atoi(argv[2]); //*Tempo maximo*/
 	FILE * trace;
 	if (traceSize == 1) {
 		trace = fopen("small.txt", "w");
