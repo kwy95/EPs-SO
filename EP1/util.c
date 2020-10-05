@@ -8,6 +8,26 @@ void checkPtr(void* ptr) {
     }
 }
 
+void swap( Trace a, Trace b ) {
+    Trace t;
+    t = a;
+    a = b;
+    b = t;
+}
+
+int indice(Fila F, int i) {
+    return (F->first + i) % F->space;
+}
+
+/** Calcula o tempo passado em segundos */
+int time_dif(struct timespec t, struct timespec t0) {
+    long s = t.tv_sec - t0.tv_sec;
+    long ns = t.tv_nsec - t0.tv_nsec;
+    long e = ((s*TSCALE) + ns) / TSCALE;
+    return e;
+}
+
+
 Trace novoTrace(char* t) {
     Trace novo = (Trace) malloc(sizeof(struct trace)); checkPtr(novo);
 
@@ -19,20 +39,21 @@ Trace novoTrace(char* t) {
     novo->t0       = atoi(strtok_r(NULL, " ", &saveptr));
     novo->dt       = atoi(strtok_r(NULL, " ", &saveptr));
     novo->deadline = atoi(strtok_r(NULL, " ", &saveptr));
-    novo->elapsed  = 0;
-    novo->id = -1;
+    novo->remaining  = novo->dt;
+    novo->nremaining = 0;
+    novo->id       = -1;
 
     // printf("    criando: %p | %s\n", (void*) novo, novo->nome);
 
     return novo;
 }
 void atualizarTrace(Trace t, struct timespec dt) {
-    t->elapsed += dt.tv_sec;
-    t->nelapsed += dt.tv_nsec;
-    if(t->nelapsed >= TSCALE) {
-        long s = t->nelapsed / TSCALE;
-        t->elapsed += s;
-        t->nelapsed %= TSCALE;
+    t->remaining -= dt.tv_sec;
+    t->nremaining -= dt.tv_nsec;
+    if(t->nremaining < 0) {
+        long s = (t->remaining * TSCALE) + t->nremaining;
+        t->remaining = s / TSCALE;
+        t->nremaining = s % TSCALE;
     }
 }
 void destroiTrace(Trace t) {
@@ -48,15 +69,16 @@ void destroiTraceA(Trace* T, int size) {
     if(T != NULL) {
         for (int i = 0; i < size; i++) {
             destroiTrace(T[i]);
-            T[i] = NULL;
         }
         free(T);
         T = NULL;
     }
 }
 int trace_done(Trace t) {
-    return t->elapsed >= t->dt;
+    return (t->remaining <= 0 && t->nremaining <= 0);
 }
+
+
 
 Fila CriaFila() {
     Fila F = (Fila) malloc(sizeof(struct fila)); checkPtr(F);
@@ -124,6 +146,59 @@ int empty(Fila F) {
     return F->size <= 0;
 }
 
+double remaining(Fila F, int id) {
+    int i = indice(F, id);
+    double t = F->traces[i]->remaining;
+    t = t + ((double) F->traces[i]->nremaining / (double) TSCALE);
+    return t;
+}
+
+int parent(Fila F, int id) {
+    if(id > 1 && id < F->size)
+        return id / 2;
+    return -1;
+}
+int filho_esq(Fila F, int id) {
+    if(2*id < F->size && id >= 1)
+        return 2*id;
+    return -1;
+}
+int filho_dir(Fila F, int id) {
+    if(((2 * id) + 1) < F->size && id >= 1)
+        return ((2 * id) + 1);
+    return -1;
+}
+
+void ascender(Fila F) {
+    int id = F->size - 1;
+    while(id > 0 && F->traces[indice(F, id)] < F->traces[indice(F, parent(F,id))]) {
+        swap(F->traces[indice(F, id)], F->traces[indice(F, parent(F,id))]);
+        id = parent(F, id);
+    }
+}
+void descender(Fila F) {
+    int id = 0;
+    int id_l = 1 ? F->size > 1 : -1;
+    int id_r = 2 ? F->size > 2 : -1;
+
+    int menor = id;
+    while((id_l != -1 || id_r != -1)) {
+        if(id_l != -1 && F->traces[indice(F, menor)] > F->traces[indice(F, id_l)])
+            menor = id_l;
+        if(id_r != -1 && F->traces[indice(F, menor)] > F->traces[indice(F, id_r)])
+            menor = id_r;
+
+        if(menor == id)
+            return;
+
+        swap(F->traces[indice(F, id)], F->traces[indice(F, menor)]);
+
+        id = menor;
+        id_l = filho_esq(F, id);
+        id_r = filho_dir(F, id);
+    }
+}
+
 void enqueue(Fila F, Trace T) {
     if(F->size >= F->space)
         aumentaF(F);
@@ -145,6 +220,7 @@ Trace dequeue(Fila F) {
 
     Trace t = F->traces[F->first];
     F->size--;
+    F->traces[F->first] = NULL;
     F->first = (F->first + 1) % F->space;
 
     if(F->size < F->space / 4)
@@ -176,18 +252,10 @@ void ImprimeFila(Fila F) {
             Trace elemento = F->traces[(F->first + i) % F->space];
             printf("  elemento %d: [ %s, %d, %ld, %d, %ld, %d ]\n", i,
                         elemento->nome,     elemento->t0,      elemento->dt,
-                        elemento->deadline, elemento->elapsed, elemento->id);
+                        elemento->deadline, elemento->remaining, elemento->id);
             // printf("    loc: %p\n", (void*) elemento);
         }
     }
-}
-
-/** Calcula o tempo passado em segundos */
-int time_dif(struct timespec t, struct timespec t0) {
-    long s = t.tv_sec - t0.tv_sec;
-    long ns = t.tv_nsec - t0.tv_nsec;
-    long e = ((s*TSCALE) + ns) / TSCALE;
-    return e;
 }
 
 

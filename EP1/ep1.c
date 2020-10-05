@@ -67,7 +67,7 @@ void *proc_sim(void* p) {
         //     atualizarTrace(proc, resto);
         // } else {
         //     atualizarTrace(proc, _quantum);
-            // fprintf(stderr, "\n**  [%ld] proc elapsed: %ld s %ld ns\n", proc->dt, proc->elapsed, proc->nelapsed);
+        //     fprintf(stderr, "\n**  [%ld] proc remain: %ld s %ld ns\n", proc->dt, proc->remaining, proc->nremaining);
         // }
     }
     pthread_mutex_unlock(&_mutexes[proc->id]);
@@ -185,35 +185,125 @@ void* FirstComeFirstServed(void* proc) {
     }
 
     fprintf(output, "%d\n", _contexto);
-    fclose(output);
+
+    free(threads);
+    DestroiFila(escalonador);
 
     return NULL;
 }
 
 void* ShortestRemainingTimeNext(void* proc) {
+    // fprintf(stderr, "    Iniciou-se RR\n");
     Fila processos = (Fila) proc;
-    // int N = processos->size;
+    int N = processos->size;
+    int curId = -1;
+    Trace cur;
 
-    escalonador_init(processos);
+    pthread_t* threads = escalonador_init(processos);
 
-    while (0) {
-        // tracelist[total_lines].nome = strtok(line, " ");
-        // tracelist[total_lines].to = atoi(strtok (NULL, " "));
-        // tracelist[total_lines].dt = atoi(strtok (NULL, " "));
-        // tracelist[total_lines].deadline = atoi(strtok (NULL, " "));
+    Fila escalonador = CriaFila();
 
-        // total_lines++;
+    while (!empty(processos) || !empty(escalonador) || curId != -1) {
+        struct timespec ts;
+        clock_gettime(CLOCK_REALTIME, &ts);
+        int t = time_dif(ts, _t0);
+
+        /** Chegada de processos no sistema */
+        while(!empty(processos) && t >= peek(processos)->t0) {
+            Trace tr = dequeue(processos);
+            pthread_create(&threads[tr->id], NULL, proc_sim, tr);
+            enqueue(escalonador, tr);
+            if(_debug) {
+                fprintf(stderr, "[%d] O processo %s acabou de chegar no sistema com a linha:\n    %s %d %ld %d\n",
+                                t, tr->nome, tr->nome, tr->t0, tr->dt, tr->deadline);
+            }
+        }
+
+        /** Nenhum processo rodando, 1 ou mais na espera */
+        if (curId == -1 && !empty(escalonador)) {
+            cur = dequeue(escalonador);
+            curId = cur->id;
+            set_first(curId, t);
+
+            pthread_mutex_lock(&_mutexes[curId]);
+            pthread_cond_signal(&_conds[curId]);
+            pthread_mutex_unlock(&_mutexes[curId]);
+            if(_debug) {
+                fprintf(stderr, "O processo %s comecou a rodar na CPU %d\n",
+                                    cur->nome, 1);
+            }
+
+        /** Processo retornou controle pro escalonador */
+        } else if (curId != -1 && !pthread_mutex_trylock(&_mutexes[curId])) {
+
+            /** Processo terminou de ser executado */
+            if(trace_done(cur)) {
+                if(_debug) {
+                    fprintf(stderr, "O processo %s acabou de encerrar sua execução, a linha de saída é:\n  %s %d %d\n",
+                                        cur->nome, cur->nome, t, t - _first_exec[curId]);
+                }
+                fprintf(output, "%s %d %d\n", cur->nome, t, t - _first_exec[curId]);
+                pthread_mutex_unlock(&_mutexes[curId]);
+                destroiTrace(cur);
+
+                /** Executa pŕoximo processo */
+                if (!empty(escalonador)) {
+                    _contexto++;
+                    cur = dequeue(escalonador);
+                    curId = cur->id;
+                    set_first(curId, t);
+
+                    pthread_mutex_lock(&_mutexes[curId]);
+                    pthread_cond_signal(&_conds[curId]);
+                    pthread_mutex_unlock(&_mutexes[curId]);
+                    if(_debug) {
+                        fprintf(stderr, "Mudança de contexto! Total até o momento: %d\n", _contexto);
+                        fprintf(stderr, "O processo %s comecou a rodar na CPU %d\n", cur->nome, 1);
+                    }
+                } else {
+                    curId = -1;
+                }
+
+            /** Processo ainda não terminou */
+            } else {
+
+                /** Continua a execução do processo */
+                if(empty(escalonador)) {
+                    pthread_cond_signal(&_conds[curId]);
+                    pthread_mutex_unlock(&_mutexes[curId]);
+
+                /** Retorna processo pra fila e executa o próximo */
+                } else {
+                    _contexto++;
+                    pthread_mutex_unlock(&_mutexes[curId]);
+                    enqueue(escalonador, cur);
+                    cur = dequeue(escalonador);
+                    curId = cur->id;
+                    set_first(curId, t);
+
+                    pthread_mutex_lock(&_mutexes[curId]);
+                    pthread_cond_signal(&_conds[curId]);
+                    pthread_mutex_unlock(&_mutexes[curId]);
+                    if(_debug) {
+                        fprintf(stderr, "Mudança de contexto! Total até o momento: %d\n", _contexto);
+                        fprintf(stderr, "O processo %s comecou a rodar na CPU %d\n", cur->nome, 1);
+                    }
+                }
+            }
+        }
     }
-    //for (int i = 0; i < total_lines; ++i)
-    //{
 
-    //}
+    for (int i = 0; i < N; i++) {
+        if (pthread_join(threads[i], NULL))  {
+            printf("\n ERROR joining threads %d\n",i);
+            exit(1);
+        }
+    }
 
+    fprintf(output, "%d\n", _contexto);
 
-
-
-    // printf("%d\n", wait_time);
-    // printf("%f\n", (float) wait_time/total_lines);
+    free(threads);
+    DestroiFila(escalonador);
 
     return NULL;
 }
@@ -290,21 +380,30 @@ void* RoundRobin(void* proc) {
                     curId = -1;
                 }
 
-            /** Retorna processo pra fila e executa o próximo */
+            /** Processo ainda não terminou */
             } else {
-                _contexto++;
-                pthread_mutex_unlock(&_mutexes[curId]);
-                enqueue(escalonador, cur);
-                cur = dequeue(escalonador);
-                curId = cur->id;
-                set_first(curId, t);
 
-                pthread_mutex_lock(&_mutexes[curId]);
-                pthread_cond_signal(&_conds[curId]);
-                pthread_mutex_unlock(&_mutexes[curId]);
-                if(_debug) {
-                    fprintf(stderr, "Mudança de contexto! Total até o momento: %d\n", _contexto);
-                    fprintf(stderr, "O processo %s comecou a rodar na CPU %d\n", cur->nome, 1);
+                /** Continua a execução do processo */
+                if(empty(escalonador)) {
+                    pthread_cond_signal(&_conds[curId]);
+                    pthread_mutex_unlock(&_mutexes[curId]);
+
+                /** Retorna processo pra fila e executa o próximo */
+                } else {
+                    _contexto++;
+                    pthread_mutex_unlock(&_mutexes[curId]);
+                    enqueue(escalonador, cur);
+                    cur = dequeue(escalonador);
+                    curId = cur->id;
+                    set_first(curId, t);
+
+                    pthread_mutex_lock(&_mutexes[curId]);
+                    pthread_cond_signal(&_conds[curId]);
+                    pthread_mutex_unlock(&_mutexes[curId]);
+                    if(_debug) {
+                        fprintf(stderr, "Mudança de contexto! Total até o momento: %d\n", _contexto);
+                        fprintf(stderr, "O processo %s comecou a rodar na CPU %d\n", cur->nome, 1);
+                    }
                 }
             }
         }
@@ -318,7 +417,9 @@ void* RoundRobin(void* proc) {
     }
 
     fprintf(output, "%d\n", _contexto);
-    fclose(output);
+
+    free(threads);
+    DestroiFila(escalonador);
 
     return NULL;
 }
@@ -331,22 +432,23 @@ int main(int argc, char const **argv) {
         _debug = 1;
 
     Fila processos = init_fila(file_name);
-    output = fopen(out_file, "a");
-    if (output == NULL)
-        exit(EXIT_FAILURE);
+    output = fopen(out_file, "w"); checkPtr(output);
 
     pthread_t escalonador;
     if (mode == 1)
-        pthread_create(&escalonador, NULL, FirstComeFirstServed, (void*) processos);
+        pthread_create(&escalonador, NULL, FirstComeFirstServed,      (void*) processos);
     if (mode == 2)
         pthread_create(&escalonador, NULL, ShortestRemainingTimeNext, (void*) processos);
     if (mode == 3)
-        pthread_create(&escalonador, NULL, RoundRobin, (void*) processos);
+        pthread_create(&escalonador, NULL, RoundRobin,                (void*) processos);
 
     pthread_join(escalonador, NULL);
 
     DestroiFila(processos);
     fclose(output);
+    free(_conds);
+    free(_first_exec);
+    free(_mutexes);
 
     return 0;
 }
