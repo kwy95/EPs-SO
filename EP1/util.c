@@ -15,7 +15,7 @@ void swap( Trace a, Trace b ) {
     b = t;
 }
 
-int index(Fila F, int i) {
+int indice(Fila F, int i) {
     return (F->first + i) % F->space;
 }
 
@@ -146,6 +146,13 @@ int empty(Fila F) {
     return F->size <= 0;
 }
 
+double remaining(Fila F, int id) {
+    int i = indice(F, id);
+    double t = F->traces[i]->remaining;
+    t = t + ((double) F->traces[i]->nremaining / (double) TSCALE);
+    return t;
+}
+
 int parent(Fila F, int id) {
     if(id > 1 && id < F->size)
         return id / 2;
@@ -164,13 +171,32 @@ int filho_dir(Fila F, int id) {
 
 void ascender(Fila F) {
     int id = F->size - 1;
-    while(id > 0 && F->traces[index(F, id)] < F->traces[index(F, parent(F,id))]) {
-        swap(F->traces[index(F, id)], F->traces[index(F, parent(F,id))]);
+    while(id > 0 && F->traces[indice(F, id)] < F->traces[indice(F, parent(F,id))]) {
+        swap(F->traces[indice(F, id)], F->traces[indice(F, parent(F,id))]);
         id = parent(F, id);
     }
 }
 void descender(Fila F) {
-    return;
+    int id = 0;
+    int id_l = 1 ? F->size > 1 : -1;
+    int id_r = 2 ? F->size > 2 : -1;
+
+    int menor = id;
+    while((id_l != -1 || id_r != -1)) {
+        if(id_l != -1 && F->traces[indice(F, menor)] > F->traces[indice(F, id_l)])
+            menor = id_l;
+        if(id_r != -1 && F->traces[indice(F, menor)] > F->traces[indice(F, id_r)])
+            menor = id_r;
+
+        if(menor == id)
+            return;
+
+        swap(F->traces[indice(F, id)], F->traces[indice(F, menor)]);
+
+        id = menor;
+        id_l = filho_esq(F, id);
+        id_r = filho_dir(F, id);
+    }
 }
 
 void enqueue(Fila F, Trace T) {
