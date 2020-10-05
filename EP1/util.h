@@ -15,14 +15,16 @@
 
 void checkPtr(void*);
 
+int time_dif(struct timespec, struct timespec);
+
 typedef struct trace {
     char* nome;
     int t0;
     long dt;
     int deadline;
     // ---------
-    long elapsed;
-    long nelapsed;
+    long remaining;
+    long nremaining;
     int id;
 } trace;
 typedef struct trace* Trace;
@@ -50,8 +52,6 @@ Trace dequeue(Fila);
 Trace peek(Fila);
 void DestroiFila(Fila);
 void ImprimeFila(Fila);
-
-int time_dif(struct timespec, struct timespec);
 
 int test_funcs();
 
