@@ -9,4 +9,5 @@ octave-workspace
 *.zip
 *.tar.gz
 *teste*
-
+in/
+out/
