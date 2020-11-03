@@ -1,25 +1,15 @@
 CC=gcc
-EXESH ?= bccsh
-EXEEP ?= ep1
+EXE ?= raceSim
 CFLAGS=-std=c99 -Wall
-# DEBUG=-g -O0
-LDFLAGS=-lreadline -lpthread
+DEBUG=-g -O0
+LDFLAGS= -lm -lpthread
 # INCLUDES=-I/usr/lib/x86_64-linux-gnu/openmpi/include/
 
-main: bccsh ep1
+main: raceSim
 	rm -f *.o
 
-bccsh: bccsh.c util.c util.h
-	$(CC) $(CFLAGS) $^ -o $(EXESH) $(LDFLAGS)
-
-ep1: ep1.c util.c util.h
-	$(CC) $(CFLAGS) $^ -o $(EXEEP) $(LDFLAGS)
-
-# bccsh.o: bccsh.c fila.h util.h
-# 	$(CC) $(CFLAGS) $(DEBUG) -c $<
-
-# ep1.o: ep1.c fila.h util.h
-# 	$(CC) $(CFLAGS) $(DEBUG) -c $<
+raceSim: ep2.c util.c util.h
+	$(CC) $(CFLAGS) $^ -o $(EXE) $(DEBUG) $(LDFLAGS)
 
 
 # util: util.o
@@ -30,4 +20,4 @@ util.o: util.c util.h
 
 
 clean:
-	rm -f *.o bccsh
+	rm -f *.o raceSim

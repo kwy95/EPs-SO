@@ -4,38 +4,50 @@
 #ifndef _UTIL_H
 #define _UTIL_H
 
+#include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
 
+#include <pthread.h>
+#include <sched.h>
+#include <signal.h>
+#include <time.h>
+
+#include <sys/stat.h>
+#include <sys/types.h>
+#include <sys/wait.h>
+
 #define TSCALE 1000000000L
 #define QUANTUM 500000000L
 
+#define VSTEP 30
+#define TSTEP 20
+
 void checkPtr(void*);
+int rand_lim(int);
 
 int time_dif(struct timespec, struct timespec);
 
-typedef struct trace {
-    char* nome;
-    int t0;
-    long dt;
-    int deadline;
-    // ---------
-    long remaining;
-    long nremaining;
+typedef struct ciclista {
     int id;
-} trace;
-typedef struct trace* Trace;
+    int vel;
+    int posd;
+    int posp;
+    int dist;
+    pthread_t thread;
+} ciclista;
+typedef struct ciclista* Ciclista;
 
-Trace novoTrace(char*);
-void atualizarTrace(Trace, struct timespec);
-void destroiTrace(Trace);
-void destroiTraceA(Trace*, int);
-int trace_done(Trace);
+Ciclista novoCiclista(int, int, int, pthread_t);
+void atualizarCiclista(Ciclista, int);
+void destroiCiclista(Ciclista);
+void destroiCiclistaA(Ciclista*, int);
+
 
 typedef struct fila {
-    Trace* traces;
+    Ciclista* ciclistas;
     int size;
     int space;
     int first;
@@ -46,15 +58,12 @@ typedef struct fila* Fila;
 
 Fila CriaFila();
 int empty(Fila);
-double remaining(Trace);
 
-Trace peek(Fila);
+void insert(Fila, Ciclista);
+Ciclista get_min(Fila);
 
-void insert(Fila, Trace);
-Trace get_min(Fila);
-
-void enqueue(Fila, Trace);
-Trace dequeue(Fila);
+void enqueue(Fila, Ciclista);
+Ciclista dequeue(Fila);
 
 void DestroiFila(Fila);
 void ImprimeFila(Fila);
