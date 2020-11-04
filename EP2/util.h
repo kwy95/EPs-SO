@@ -19,13 +19,15 @@
 #include <sys/wait.h>
 
 #define TSCALE 1000000000L
-// #define QUANTUM 500000000L
+#define QUANTUM      1000L
 
 #define VSTEP 30
 #define TSTEP 20
+#define LANES 10
 
 void checkPtr(void*);
-int rand_lim(int);
+int rand_lim(int lim);
+int bernoulli(double p);
 
 int time_dif(struct timespec, struct timespec);
 
@@ -37,7 +39,7 @@ typedef struct ciclista {
     int posp;
     long int dist;
     int volta;
-    int dt;
+    int tf;
     int fracp;
 } ciclista;
 typedef struct ciclista* Ciclista;

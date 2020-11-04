@@ -23,6 +23,14 @@ int rand_lim(int limit) {
     return retval;
 }
 
+int bernoulli(double p) {
+    int ret = 0;
+    double pr = (double) rand() / (double) RAND_MAX;
+    if (pr <= p) {
+        ret = 1;
+    }
+    return ret;
+}
 
 void swap(Fila F, int id1, int id2) {
     Ciclista t;
@@ -52,8 +60,8 @@ Ciclista novoCiclista(int i, int pd, int pp) {
     novo->posd = pd;
     novo->posp = pp;
     novo->dist = pd;
-    novo->volta = 1;
-    novo->dt = 0;
+    novo->volta = 0;
+    novo->tf = 0;
     novo->fracp = 0;
 
     return novo;
