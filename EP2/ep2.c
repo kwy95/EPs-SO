@@ -28,6 +28,8 @@ int* _podium;
 
 FILE* _output;
 
+void print_corredores(int id);
+
 void mover_ciclista(Ciclista c, int new_p, int new_d) {
     int prev_p = c->posp;
     int prev_d = c->posd;
@@ -43,9 +45,9 @@ void* corredor (void* args) {
     int terminou = 0;
 
     pthread_barrier_wait(&_barriers[0]);
-    pthread_mutex_lock(&_mutex_print);
-    printf("thread [%3d] (%ld) passou barreira 0\n", info->id, pthread_self());
-    pthread_mutex_unlock(&_mutex_print);
+    // pthread_mutex_lock(&_mutex_print);
+    // printf("thread [%3d] (%ld) passou barreira 0\n", info->id, pthread_self());
+    // pthread_mutex_unlock(&_mutex_print);
 
     while(!terminou) {
         int avancou = 0;
@@ -59,11 +61,14 @@ void* corredor (void* args) {
 
         int go = 0;
         while(!go) {
-            pthread_mutex_lock(&_mutexes[curd]);
-            if(!pthread_mutex_trylock(&_mutexes[nextd])) {
-                go = 1;
+            if(!pthread_mutex_trylock(&_mutexes[curd])) {
+                if(!pthread_mutex_trylock(&_mutexes[nextd])) {
+                    go = 1;
+                } else {
+                    pthread_mutex_unlock(&_mutexes[curd]);
+                    nanosleep(&_quantum, NULL);
+                }
             } else {
-                pthread_mutex_unlock(&_mutexes[curd]);
                 nanosleep(&_quantum, NULL);
             }
         }
@@ -111,7 +116,7 @@ void* corredor (void* args) {
             info->volta++;
 
             pthread_mutex_lock(&_mutex_print);
-            printf("\n  -> O ciclista [%3x] iniciou a volta %d.\n", info->id, vt + 1);
+            printf("\n  -> O ciclista [%3x] iniciou a volta %d.\n", info->id, vt + 2);
             pthread_mutex_unlock(&_mutex_print);
 
             pthread_mutex_lock(&_mutex_rank);
@@ -129,7 +134,7 @@ void* corredor (void* args) {
                 printf("\n  -> O ciclista [%3x] foi eliminado na volta %d.\n", info->id, vt + 1);
                 pthread_mutex_unlock(&_mutex_print);
             }
-            if (!terminou && vt % 6 == 5 && _correndo > 5 && bernoulli(0.05)) { // quebras ou desistencia
+            if (!terminou && vt % 6 == 5 && _correndo > 5 && bernoulli(0.8)) { // quebras ou desistencia
                 terminou = 1;
                 _correndo--;
                 _quebraram++;
@@ -149,25 +154,27 @@ void* corredor (void* args) {
 
             if (!terminou) { // nova velocidade
                 if (info->t_vel == 30) {
-                    info->t_vel = bernoulli(0.2) ? 1 * VSTEP : 2 * VSTEP;
+                    info->t_vel = bernoulli(0.2) ? (1 * VSTEP) : (2 * VSTEP);
                 } else if (info->t_vel == 60) {
-                    info->t_vel = bernoulli(0.4) ? 1 * VSTEP : 2 * VSTEP;
+                    info->t_vel = bernoulli(0.4) ? (1 * VSTEP) : (2 * VSTEP);
                 }
                 if (info->volta == _voltas_max - 2 && !_sprint) {
                     _sprint = bernoulli(0.9) ? 3 : (bernoulli(0.5) ? 1 : 2);
                 }
                 if (vt == _voltas_max - 2 &&_rank[info->id - 1][vt] == _sprint) {
                     info->t_vel = 3 * VSTEP;
-                    _dt = 1 * TSTEP;
-                    _sprint = 3;
+                    // _dt = 1 * TSTEP;
+                    _sprint = 4;
                 }
             }
+            print_corredores(info->id -1);
         }
         pthread_mutex_lock(&_mutexes[info->posd]);
         if (terminou) {
             _pista[info->posp][info->posd] = 0;
         }
         pthread_mutex_unlock(&_mutexes[info->posd]);
+
         pthread_barrier_wait(&_barriers[0]);
         pthread_barrier_wait(&_barriers[1]);
     }
@@ -301,15 +308,27 @@ void print_rank() {
     pthread_mutex_unlock(&_mutex_print);
 }
 
-void print_corredores() {
+void print_corredores(int id) {
     pthread_mutex_lock(&_mutex_print);
-    printf("***\n");
-    for (int i = 0; i < _n; i++) {
-        printf("  [%3x]: vel= %2d; pp= %2d; pd= %3d;\n", _corredores[i]->id,
-               _corredores[i]->t_vel, _corredores[i]->posp, _corredores[i]->posd);
+    if (id == -1) {
+        printf("***\n");
+        for (int i = 0; i < _n; i++) {
+            printf("  [%3x]: vel= %2d; pp= %2d; pd= %3d; vt= %d\n", _corredores[i]->id,
+                _corredores[i]->t_vel, _corredores[i]->posp, _corredores[i]->posd,
+                _corredores[i]->volta);
+        }
+        // printf("\n");
+        printf("***\n");
+    } else {
+        printf("***\n");
+        printf("  [%3x]: t_vel= %2d; pp= %2d; pd= %3d; vt= %d\n", _corredores[id]->id,
+            _corredores[id]->t_vel, _corredores[id]->posp, _corredores[id]->posd,
+            _corredores[id]->volta);
+        printf("           vel= %2d; dist= %5ld; tf= %5d; frac= %d\n",
+            _corredores[id]->vel, _corredores[id]->dist, _corredores[id]->tf,
+            _corredores[id]->fracp);
+        printf("***\n");
     }
-    printf("\n");
-    printf("***\n");
     pthread_mutex_unlock(&_mutex_print);
 }
 
@@ -330,14 +349,17 @@ void* controlador(void* args) {
             corr = _correndo;
         }
         pthread_barrier_wait(&_barriers[0]);
+        if (_sprint == 4)
+            _dt = 1 * TSTEP;
 
         if (_debug)
             print_pista();
-        print_corredores();
+        // print_corredores();
 
         if (corr != _correndo) {
             pthread_barrier_destroy(&_barriers[0]);
             pthread_barrier_init(&_barriers[0], NULL, _correndo + 1);
+            print_rank();
         }
         pthread_barrier_wait(&_barriers[1]);
     }
