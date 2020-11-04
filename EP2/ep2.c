@@ -13,6 +13,7 @@ _Atomic int _correndo = 0;
 // FILE* _output;
 int* _pista[10];
 _Atomic int* _passaram_volta;
+int** _rank;
 
 void* corredor (void* args) {
     Ciclista info = (Ciclista) args;
@@ -68,19 +69,22 @@ void* corredor (void* args) {
                 }
             }
             pthread_mutex_unlock(&_mutexes[nextd]);
-        } else {
+        } else { // não vai avançar, tenta ir para uma pista interna
             int entrou = 0;
             for (int p = 0; p < info->posp && !entrou; p++) {
                 if (!_pista[p][info->posd]) {
-                    _pista[info->posp][info->posd] = info->id;
+                    _pista[info->posp][info->posd] = 0;
                     _pista[p][info->posd] = info->id;
+                    info->posp = p;
+                    info->vel = t_vel;
+                    entrou = 1;
                 }
             }
         }
         pthread_mutex_unlock(&_mutexes[curd]);
 
 
-        if (_pista[curp][nextd]) {
+        if (!avancou && _pista[curp][nextd]) {
             if (_corredores[_pista[curp][nextd] - 1]->vel < t_vel)
                 t_vel = _corredores[_pista[curp][nextd] - 1]->vel;
         }
@@ -101,15 +105,24 @@ void* corredor (void* args) {
 void init_pista() {
     _corredores = (Ciclista*) malloc(_n * sizeof(Ciclista)); checkPtr(_corredores);
     _t_corredores = (pthread_t*) malloc(_n * sizeof(pthread_t)); checkPtr(_t_corredores);
+    _rank = (int**) malloc(_n * sizeof(int*)); checkPtr(_rank);
+    _passaram_volta = (_Atomic int*) malloc(2 * (_n-1) * sizeof(_Atomic int)); checkPtr(_passaram_volta);
+
+    for(int i = 0; i < _n; i++) {
+        _rank[i] = (int*) malloc(2*(_n-1) * sizeof(int)); checkPtr(_rank[i]);
+        for(int j = 0; j < 2*(_n-1); j++) {
+            _rank[i][j] = 0;
+        }
+    }
     for(int i = 0; i < 10; i++) {
         _pista[i] = (int*) malloc(_d * sizeof(int)); checkPtr(_pista[i]);
         for(int j = 0; j < _d; j++) {
             _pista[i][j] = 0;
         }
     }
-    _passaram_volta = (_Atomic int*) malloc(2 * (_n-1) * sizeof(_Atomic int)); checkPtr(_passaram_volta);
     for(int i = 0; i < 2*(_n-1); i++)
         _passaram_volta[i] = 0;
+
 
     // posiciona os corredores
     int faltam = _n;
@@ -150,7 +163,6 @@ void end_threadctl() {
     for (int i = 0; i < 3; i++) {
         pthread_barrier_destroy(&_barriers[i]);
     }
-
 }
 
 void free_pista() {
@@ -160,21 +172,20 @@ void free_pista() {
     }
 }
 
-void print_pista(int d, FILE* fp) {
-    if(fp) {
-        for (int j = 0; j < d; j++) {
-            for (int i = 0; i < 10; i++) {
-                fprintf(fp, " %03x |", _pista[i][j]);
-            }
-            fprintf(fp, "\n");
-        }
-            fprintf(fp, "\n\n");
-            return;
-    }
-
-    for (int j = 0; j < d; j++) {
+void print_pista() {
+    for (int j = 0; j < _d; j++) {
         for (int i = 0; i < 10; i++) {
             printf(" %3x |", _pista[i][j]);
+        }
+        printf("\n");
+    }
+        printf("\n\n");
+}
+
+void print_rank() {
+    for (int i = 0; i < _n; i++) {
+        for (int j = 0; j < 2*(_n-1); j++) {
+            printf(" %3x |", _rank[i][j]);
         }
         printf("\n");
     }
@@ -190,22 +201,16 @@ void print_corredores() {
 }
 
 void* controlador(void* args) {
+    print_pista();
+    print_rank();
     printf("pre-barreira 0 %ld controller\n", pthread_self());
     pthread_barrier_wait(&_barriers[0]);
-    print_pista(_d, NULL);
     // print_corredores();
-
-    // pthread_t test;
-    // if(pthread_create(&test, NULL, corredor, _corredores[_pista[2][((int) ceil(((double) _n) / 5.0)) - 1] - 1])) {
-    //     printf("\n ERROR creating thread \n");
-    //     exit(1);
-    // }
-
 
     while(_correndo > 0) {
         printf("pre barreira 1\n");
         pthread_barrier_wait(&_barriers[1]);
-        print_pista(_d, NULL);
+        print_pista();
         sleep(5);
         pthread_barrier_wait(&_barriers[2]);
     }
