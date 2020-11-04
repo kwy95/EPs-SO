@@ -11,7 +11,6 @@
 #include <unistd.h>
 
 #include <pthread.h>
-#include <sched.h>
 #include <signal.h>
 #include <time.h>
 
@@ -20,7 +19,7 @@
 #include <sys/wait.h>
 
 #define TSCALE 1000000000L
-#define QUANTUM 500000000L
+// #define QUANTUM 500000000L
 
 #define VSTEP 30
 #define TSTEP 20
@@ -32,18 +31,21 @@ int time_dif(struct timespec, struct timespec);
 
 typedef struct ciclista {
     int id;
+    int t_vel;
     int vel;
     int posd;
     int posp;
-    int dist;
-    pthread_t thread;
+    long int dist;
+    int volta;
+    int dt;
+    int fracp;
 } ciclista;
 typedef struct ciclista* Ciclista;
 
-Ciclista novoCiclista(int, int, int, pthread_t);
+Ciclista novoCiclista(int id, int pd, int pp);
 void atualizarCiclista(Ciclista, int);
 void destroiCiclista(Ciclista);
-void destroiCiclistaA(Ciclista*, int);
+void destroiCiclistaA(Ciclista*, int size);
 
 
 typedef struct fila {

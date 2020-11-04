@@ -43,15 +43,18 @@ int time_dif(struct timespec t, struct timespec t0) {
     return e;
 }
 
-Ciclista novoCiclista(int i, int pd, int pp, pthread_t t) {
+Ciclista novoCiclista(int i, int pd, int pp) {
     Ciclista novo = (Ciclista) malloc(sizeof(struct ciclista)); checkPtr(novo);
 
     novo->id = i;
-    novo->vel = 30;
+    novo->t_vel = 1 * VSTEP;
+    novo->vel = 1 * VSTEP;
     novo->posd = pd;
     novo->posp = pp;
     novo->dist = pd;
-    novo->thread = t;
+    novo->volta = 1;
+    novo->dt = 0;
+    novo->fracp = 0;
 
     return novo;
 }
@@ -60,7 +63,6 @@ void atualizarCiclista(Ciclista c, int dt) {
 }
 void destroiCiclista(Ciclista c) {
     if (c != NULL) {
-        pthread_join(c->thread, NULL);
         free(c);
         c = NULL;
     }
