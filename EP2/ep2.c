@@ -26,6 +26,7 @@ int* _pista[LANES];
 int* _passaram_volta;
 int** _rank;
 int* _podium;
+int** _partial_podium;
 
 void barreira(int id) {
     _chegou[id] = 1;
@@ -42,6 +43,20 @@ void mover_ciclista(Ciclista c, int new_p, int new_d) {
     _pista[new_p][new_d] = c->id;
     c->posp = new_p;
     c->posd = new_d;
+}
+
+void print_ppodium(int vt) {
+    pthread_mutex_lock(&_mutex_print);
+    int pos = 1;
+    printf("Posições parciais (volta: %3d)\n", vt + 1);
+    for (int i = 0; i < _n; i++) {
+        if (_partial_podium[vt][i]) {
+            Ciclista cur = _corredores[_partial_podium[vt][i] - 1];
+            printf("  (%4d) :  [%3x]\n", pos, cur->id);
+            pos++;
+        }
+    }
+    pthread_mutex_unlock(&_mutex_print);
 }
 
 void* corredor (void* args) {
@@ -121,7 +136,12 @@ void* corredor (void* args) {
             int rk = _passaram_volta[vt] + 1;
             _passaram_volta[vt]++;
             _rank[info->id - 1][vt] = rk;
+            _partial_podium[vt][rk - 1] = info->id;
             pthread_mutex_unlock(&_mutex_rank);
+
+            if (rk == _correndo) {
+                print_ppodium(vt);
+            }
 
             if (vt % 2 != 0 && rk >= (_n+1) - ((vt+1)/2)) { // eliminação
                 terminou = 1;
@@ -181,6 +201,7 @@ void init_pista() {
     _t_corredores = (pthread_t*) malloc(_n * sizeof(pthread_t)); checkPtr(_t_corredores);
     _rank = (int**) malloc(_n * sizeof(int*)); checkPtr(_rank);
     _podium = (int*) malloc(_n * sizeof(int)); checkPtr(_podium);
+    _partial_podium = (int**) malloc(_voltas_max * sizeof(int*)); checkPtr(_partial_podium);
     _passaram_volta = (int*) malloc(_voltas_max * sizeof(int)); checkPtr(_passaram_volta);
 
     for(int i = 0; i < _n; i++) {
@@ -196,9 +217,13 @@ void init_pista() {
             _pista[i][j] = 0;
         }
     }
-    for(int i = 0; i < _voltas_max; i++)
+    for(int i = 0; i < _voltas_max; i++) {
+        _partial_podium[i] = (int*) malloc(_n * sizeof(int)); checkPtr(_partial_podium[i]);
+        for(int j = 0; j < _n; j++) {
+            _partial_podium[i][j] = 0;
+        }
         _passaram_volta[i] = 0;
-
+    }
 
     // posiciona os corredores
     int faltam = _n;
@@ -228,6 +253,10 @@ void destroi_pista() {
         free(_rank[i]);
     }
     free(_rank);
+    for (int i = 0; i < _voltas_max; i++) {
+        free(_partial_podium[i]);
+    }
+    free(_partial_podium);
     free(_podium);
     for (int i = 0; i < LANES; i++) {
         free(_pista[i]);
@@ -317,7 +346,7 @@ void print_corredores(int id) {
 
 void print_podium() {
     int pos = 1;
-    printf("Posições finais");
+    printf("Posições finais\n");
     for (int i = 0; i < _n; i++) {
         if (_podium[i]) {
             Ciclista cur = _corredores[_podium[i] - 1];
