@@ -39,6 +39,7 @@ typedef struct ciclista {
     int posd;
     int posp;
     long int dist;
+    int quebrou;
     int volta;
     int tf;
     int fracp;
@@ -46,33 +47,7 @@ typedef struct ciclista {
 typedef struct ciclista* Ciclista;
 
 Ciclista novoCiclista(int id, int pd, int pp);
-void atualizarCiclista(Ciclista, int);
 void destroiCiclista(Ciclista);
 void destroiCiclistaA(Ciclista*, int size);
-
-
-typedef struct fila {
-    Ciclista* ciclistas;
-    int size;
-    int space;
-    int first;
-    int last;
-    int n_id;
-} fila;
-typedef struct fila* Fila;
-
-Fila CriaFila();
-int empty(Fila);
-
-void insert(Fila, Ciclista);
-Ciclista get_min(Fila);
-
-void enqueue(Fila, Ciclista);
-Ciclista dequeue(Fila);
-
-void DestroiFila(Fila);
-void ImprimeFila(Fila);
-
-int test_funcs();
 
 #endif
