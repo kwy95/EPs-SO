@@ -4,6 +4,7 @@
 #ifndef _UTIL_H
 #define _UTIL_H
 
+#include <errno.h>
 #include <math.h>
 #include <stdio.h>
 #include <stdlib.h>

@@ -16,9 +16,7 @@ _Atomic int _sprint = 1;
 pthread_mutex_t* _mutexes;
 pthread_mutex_t _mutex_rank;
 pthread_mutex_t _mutex_print;
-// pthread_barrier_t _barriers[2];
-_Atomic int* _chegou;
-_Atomic int* _continuar;
+pthread_barrier_t _barriers[2];
 
 Ciclista* _corredores;
 pthread_t* _t_corredores;
@@ -30,13 +28,6 @@ int** _rank;
 int* _podium;
 
 // FILE* _output;
-
-void barreira(int id) {
-    _chegou[id] = 1;
-    while (_continuar[id] == 0)
-        nanosleep(&_quantum, NULL);
-    _continuar[id] = 0;
-}
 
 void set_status(int id, int status) {
     pthread_mutex_lock(&_mutex_rank);
@@ -57,7 +48,7 @@ void get_status(int st) {
     pthread_mutex_unlock(&_mutex_rank);
 }
 
-//! arrumar
+
 void print_corredores(int id);
 
 void mover_ciclista(Ciclista c, int new_p, int new_d) {
@@ -74,15 +65,16 @@ void* corredor (void* args) {
     Ciclista info = (Ciclista) args;
     int terminou = 0;
 
-    // int e = 0;
-    // if ((e = pthread_barrier_wait(&_barriers[0])) > 0 || e < -1) {
-    //     pthread_mutex_lock(&_mutex_print);
-    //     printf("Problema {%d} na barreira de inicialização! [%3x] (%ld)\n", e, info->id, pthread_self());
-    //     pthread_mutex_unlock(&_mutex_print);
-    //     exit(1);
-    // }
-
-    barreira(info->id - 1);
+    int e = 0;
+    if ((e = pthread_barrier_wait(&_barriers[0])) > 0 || e < -1) {
+        pthread_mutex_lock(&_mutex_print);
+        printf("Problema {%d} na barreira de inicialização! [%3x] (%ld)\n", e, info->id, pthread_self());
+        pthread_mutex_unlock(&_mutex_print);
+        exit(1);
+    }
+    // pthread_mutex_lock(&_mutex_print);
+    // printf("thread [%3d] (%ld) passou barreira 0\n", info->id, pthread_self());
+    // pthread_mutex_unlock(&_mutex_print);
 
     while(!terminou) {
         set_status(info->id - 1, 1);
@@ -224,33 +216,29 @@ void* corredor (void* args) {
         // pthread_mutex_unlock(&_mutexes[nextd]);
 
         // e = 0;
-        // if ((e = pthread_barrier_wait(&_barriers[0])) > 0 || e < -1) {
-        //     pthread_mutex_lock(&_mutex_print);
-        //     printf("Problema {%d} na barreira 1 da thread [%3x] (%ld)\n", e, info->id, pthread_self());
-        //     pthread_mutex_unlock(&_mutex_print);
-        //     exit(1);
-        // }
+        if ((e = pthread_barrier_wait(&_barriers[0])) > 0 || e < -1) {
+            pthread_mutex_lock(&_mutex_print);
+            printf("Problema {%d} na barreira 1 da thread [%3x] (%ld)\n", e, info->id, pthread_self());
+            pthread_mutex_unlock(&_mutex_print);
+            exit(1);
+        }
 
-        barreira(info->id - 1);
-        barreira(info->id - 1);
-
-        // set_status(info->id - 1, 5);
+        set_status(info->id - 1, 5);
 
         // e = 0;
-        // if ((e = pthread_barrier_wait(&_barriers[1])) > 0 || e < -1) {
-        //     pthread_mutex_lock(&_mutex_print);
-        //     printf("Problema {%d} na barreira 2 da thread [%3x] (%ld)\n", e, info->id, pthread_self());
-        //     pthread_mutex_unlock(&_mutex_print);
-        //     exit(1);
-        // }
-        // set_status(info->id - 1, 6);
+        if ((e = pthread_barrier_wait(&_barriers[1])) > 0 || e < -1) {
+            pthread_mutex_lock(&_mutex_print);
+            printf("Problema {%d} na barreira 2 da thread [%3x] (%ld)\n", e, info->id, pthread_self());
+            pthread_mutex_unlock(&_mutex_print);
+            exit(1);
+        }
+        set_status(info->id - 1, 6);
     }
     pthread_mutex_lock(&_mutex_print);
     printf("thread [%3x] (%ld) terminou\n", info->id, pthread_self());
     pthread_mutex_unlock(&_mutex_print);
 
     set_status(info->id - 1, -1);
-    _chegou[info->id - 1] = -1;
 
 
     return NULL;
@@ -320,47 +308,36 @@ void destroi_pista() {
 
 void init_threadctl() {
     _mutexes = (pthread_mutex_t*) malloc(_d * sizeof(pthread_mutex_t)); checkPtr(_mutexes);
-    _chegou = (_Atomic int*) malloc(_n * sizeof(_Atomic int)); checkPtr(_chegou);
-    _continuar = (_Atomic int*) malloc(_n * sizeof(_Atomic int)); checkPtr(_continuar);
 
     pthread_mutex_init(&_mutex_rank, NULL);
     pthread_mutex_init(&_mutex_print, NULL);
     for (int i = 0; i < _d; i++) {
         pthread_mutex_init(&_mutexes[i], NULL);
     }
-    for (int i = 0; i < _n; i++) {
-        _chegou[i] = 0;
-        _continuar[i] = 0;
+    for (int i = 0; i < 2; i++) {
+        pthread_barrier_init(&_barriers[i], NULL, _n + 1);
     }
-
-    // for (int i = 0; i < 2; i++) {
-    //     pthread_barrier_init(&_barriers[i], NULL, _n + 1);
-    // }
 }
 
 void end_threadctl() {
     pthread_mutex_destroy(&_mutex_rank);
     pthread_mutex_destroy(&_mutex_print);
-    // for (int i = 0; i < 2; i++) {
-    //     while(pthread_barrier_destroy(&_barriers[i]) == EBUSY) {
-    //         nanosleep(&_quantum, NULL);
-    //     }
-    //     // if (pthread_barrier_destroy(&_barriers[i])) {
-    //     //     pthread_mutex_lock(&_mutex_print);
-    //     //     printf("Problema ao destruir barreira 1");
-    //     //     pthread_mutex_unlock(&_mutex_print);
-    //     //     exit(1);
-    //     // }
-    // }
+    for (int i = 0; i < 2; i++) {
+        while(pthread_barrier_destroy(&_barriers[i]) == EBUSY) {
+            nanosleep(&_quantum, NULL);
+        }
+        // if (pthread_barrier_destroy(&_barriers[i])) {
+        //     pthread_mutex_lock(&_mutex_print);
+        //     printf("Problema ao destruir barreira 1");
+        //     pthread_mutex_unlock(&_mutex_print);
+        //     exit(1);
+        // }
+    }
     for (int i = 0; i < _d; i++) {
         pthread_mutex_destroy(&_mutexes[i]);
     }
     free(_mutexes);
-    free(_chegou);
-    free(_continuar);
     _mutexes = NULL;
-    _chegou = NULL;
-    _continuar = NULL;
 }
 
 void print_pista() {
@@ -414,36 +391,20 @@ void print_corredores(int id) {
     pthread_mutex_unlock(&_mutex_print);
 }
 
-void barreira_coord() {
-    for (int i = 0; i < _n; i++) {
-        while (_chegou[i] == 0) {
-            nanosleep(&_quantum, NULL);
-        }
-        if (_chegou[i] == 1)
-            _chegou[i] = 0;
-    }
-    for (int i = 0; i < _n; i++) {
-        _continuar[i] = 1;
-    }
-}
-
 void* controlador(void* args) {
     int iterations = 0;
-    // int corr = _correndo;
+    int corr = _correndo;
     print_pista();
     // print_rank();
     // printf("pre-barreira 0 controller %ld\n", pthread_self());
-    // int e = 0;
-    // if ((e = pthread_barrier_wait(&_barriers[0])) > 0 || e < -1) {
-    //     pthread_mutex_lock(&_mutex_print);
-    //     printf("Problema {%d} na barreira de inicialização! [%3x] (%ld)\n", e, 0, pthread_self());
-    //     pthread_mutex_unlock(&_mutex_print);
-    //     exit(1);
-    // }
+    int e = 0;
+    if ((e = pthread_barrier_wait(&_barriers[0])) > 0 || e < -1) {
+        pthread_mutex_lock(&_mutex_print);
+        printf("Problema {%d} na barreira de inicialização! [%3x] (%ld)\n", e, 0, pthread_self());
+        pthread_mutex_unlock(&_mutex_print);
+        exit(1);
+    }
     // print_corredores();
-
-    barreira_coord();
-
 
     while(_correndo > 0) {
         iterations++;
@@ -451,15 +412,12 @@ void* controlador(void* args) {
         get_status(1);
 
         // int e = 0;
-        // if ((e = pthread_barrier_wait(&_barriers[0])) > 0 || e < -1) {
-        //     pthread_mutex_lock(&_mutex_print);
-        //     printf("Problema {%d} na barreira 1 da thread [%3x] (%ld)\n", e, 0, pthread_self());
-        //     pthread_mutex_unlock(&_mutex_print);
-        //     exit(1);
-        // }
-
-        barreira_coord();
-
+        if ((e = pthread_barrier_wait(&_barriers[0])) > 0 || e < -1) {
+            pthread_mutex_lock(&_mutex_print);
+            printf("Problema {%d} na barreira 1 da thread [%3x] (%ld)\n", e, 0, pthread_self());
+            pthread_mutex_unlock(&_mutex_print);
+            exit(1);
+        }
         if (_sprint == 4)
             _dt = 1 * TSTEP;
 
@@ -467,49 +425,47 @@ void* controlador(void* args) {
             print_pista();
         // print_corredores();
 
-        // if (corr != _correndo) {
-        //     get_status(3);
-        //     while(pthread_barrier_destroy(&_barriers[0]) == EBUSY) {
-        //         nanosleep(&_quantum, NULL);
-        //     }
+        if (corr != _correndo) {
+            get_status(3);
+            while(pthread_barrier_destroy(&_barriers[0]) == EBUSY) {
+                nanosleep(&_quantum, NULL);
+            }
 
-        //     // if (pthread_barrier_destroy(&_barriers[0])) {
-        //     //     pthread_mutex_lock(&_mutex_print);
-        //     //     printf("Problema ao destruir barreira 2");
-        //     //     pthread_mutex_unlock(&_mutex_print);
-        //     //     exit(1);
-        //     // }
-        //     pthread_barrier_init(&_barriers[0], NULL, _correndo + 1);
-        //     print_rank();
-        // }
+            // if (pthread_barrier_destroy(&_barriers[0])) {
+            //     pthread_mutex_lock(&_mutex_print);
+            //     printf("Problema ao destruir barreira 2");
+            //     pthread_mutex_unlock(&_mutex_print);
+            //     exit(1);
+            // }
+            pthread_barrier_init(&_barriers[0], NULL, _correndo + 1);
+            print_rank();
+        }
 
-        // get_status(2);
-
-        barreira_coord();
+        get_status(2);
 
         // int e = 0;
-        // if ((e = pthread_barrier_wait(&_barriers[1])) > 0 || e < -1) {
-        //     pthread_mutex_lock(&_mutex_print);
-        //     printf("Problema {%d} na barreira 2 da thread [%3x] (%ld)\n", e, 0, pthread_self());
-        //     pthread_mutex_unlock(&_mutex_print);
-        //     exit(1);
-        // }
+        if ((e = pthread_barrier_wait(&_barriers[1])) > 0 || e < -1) {
+            pthread_mutex_lock(&_mutex_print);
+            printf("Problema {%d} na barreira 2 da thread [%3x] (%ld)\n", e, 0, pthread_self());
+            pthread_mutex_unlock(&_mutex_print);
+            exit(1);
+        }
 
-        // if (corr != _correndo) {
-        //     get_status(0);
-        //     while(pthread_barrier_destroy(&_barriers[1]) == EBUSY) {
-        //         nanosleep(&_quantum, NULL);
-        //     }
+        if (corr != _correndo) {
+            get_status(0);
+            while(pthread_barrier_destroy(&_barriers[1]) == EBUSY) {
+                nanosleep(&_quantum, NULL);
+            }
 
-        //     // if (pthread_barrier_destroy(&_barriers[1])) {
-        //     //     pthread_mutex_lock(&_mutex_print);
-        //     //     printf("Problema ao destruir barreira 1");
-        //     //     pthread_mutex_unlock(&_mutex_print);
-        //     //     exit(1);
-        //     // }
-        //     pthread_barrier_init(&_barriers[1], NULL, _correndo + 1);
-        //     corr = _correndo;
-        // }
+            // if (pthread_barrier_destroy(&_barriers[1])) {
+            //     pthread_mutex_lock(&_mutex_print);
+            //     printf("Problema ao destruir barreira 1");
+            //     pthread_mutex_unlock(&_mutex_print);
+            //     exit(1);
+            // }
+            pthread_barrier_init(&_barriers[1], NULL, _correndo + 1);
+            corr = _correndo;
+        }
     }
     print_rank();
     for (int i = 0; i < _n; i++)
