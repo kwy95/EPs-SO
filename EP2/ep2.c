@@ -377,13 +377,9 @@ void barreira_coord() {
 }
 
 void* controlador(void* args) {
-    // int iterations = 0;
-
     barreira_coord();
 
     while(_correndo > 0) {
-        // iterations++;
-
         barreira_coord();
 
         if (_sprint == 4)
@@ -394,6 +390,7 @@ void* controlador(void* args) {
 
         barreira_coord();
     }
+
     print_rank();
 
     print_podium();
