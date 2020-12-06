@@ -15,20 +15,26 @@ class Sistema(object):
 	def __init__(self, filename):
 		self.filename = filename
 		self.metadados = {}
+		self.memory = []
+		for i in range(25600):
+			data = {}
+			data['Data'] = ''
+			data['Next'] = -1
+			self.memory.append(data)
 
 def mount(file):
 	try:
 		f = open(file)
 		sistema = Sistema(file)
-		sistema.metadados = json.load(f)
+		data = json.load(f)
+		sistema.metadados = data['metadados']
+		sistema.memory = data['memory']
 		print('arquivos existe')
 		f.close()
 	except IOError:
 		sistema = Sistema(file)
 		sistema.metadados = create_directoy('/')
-		f = open(file, 'w')
-		json.dump(sistema.metadados, f)
-		f.close()
+		save_mount(sistema)
 		print("arquivo não existe, criando um")
 	return sistema
 
@@ -44,30 +50,59 @@ def ls(metadados, path_dir):
 				else:
 					ls(file , '/'.join(path_dir.split('/')[1,-1]))
 
+
+def rm(arquivo, sist):
+	new_files = []
+	for file in sist.metadados['files']:
+		if file['Nome'] == arquivo:
+			loc = file['localiz']
+			memoria = sist.memory[loc]
+			while memoria['Next'] != 1:
+				sist.memory[loc]['Data'] = ''
+				sist.memory[loc]['Next'] = -1
+				loc = memoria['Next']
+				memoria = sist.memory[loc]
+		else:
+			new_files.append(file)
+	sist.metadados['files'] = new_files
+
+
 def save_mount(sistema):
 	f = open(sistema.filename, 'w')
-	json.dump(sistema.metadados, f)
+	data = {'metadados' : sistema.metadados,
+	'memory' : sistema.memory}
+	json.dump(data, f)
 	f.close()
 
-def create_file(origem):
+def find_free_space(sist):
+	for i in range(len(sist.memory)):
+		if sist.memory[i]['Data'] == '':
+			return i
+
+def create_file(origem, sist):
 	nome = origem.split('\\')[-1]
 	file = {
-	'data' : [],
+	'localiz' : -1,
 	'Nome' : nome,
 	'Tamanho' : 0,
 	'Tempo_criado' : datetime.datetime.now().strftime('%d/%m/%Y %H:%M'),
 	'Tempo_modificado' : datetime.datetime.now().strftime('%d/%m/%Y %H:%M'),
 	'Tempo_acessado' : datetime.datetime.now().strftime('%d/%m/%Y %H:%M'),
 	}
-
+	loc = []
 	with open(origem, 'r') as f:
 		block = f.read(4096)
-		file['data'].append(block)
-		file['Tamanho'] += block.__sizeof__() -33
+		i = find_free_space(sist)
+		file['localiz'] = i
+		sist.memory[i]['Data'] = block
+		loc.append(i)
 		while block:
 			block = f.read(4096)
-			file['data'].append(block)
-			file['Tamanho'] += block.__sizeof__()
+			i = find_free_space(sist)
+			sist.memory[i]['Data'] = block
+			loc.append(i)
+		for i in range(0,len(loc)-1):
+			sist.memory[i]['Next'] = loc[i+1]
 	return file
 	
 def save_file(file,metadados, destino):
@@ -78,10 +113,10 @@ def save_file(file,metadados, destino):
 			file = metadados['files'][i]
 			if 'files' in file and file['Nome'] == destino.split('/')[0]: #é um diretorio
 				if destino.split('/')[0] == destino:
-					metadados['files'][i] = save_file(file,metadados, ' ')
+					save_file(file,metadados, ' ')
 				else:
-					metadados['files'][i] = save_file(file ,metadados, '/'.join(destino.split('/')[1,-1]))
-	return metadados
+					save_file(file ,metadados, '/'.join(destino.split('/')[1,-1]))
+
 
 mounted = False
 while 1:
@@ -90,14 +125,13 @@ while 1:
 		file = line.split(' ')[1]
 		sist = mount(file)
 		mounted = True
+	elif line.split(' ')[0] == 'sai':
+		break
 	else:
 		if mounted == False:
 			print('Você tem que montar algum arquivo para outros comandos')
 		else:
-			print(sist.metadados)
 			comando = line.split(' ')[0]
-			if comando == 'sai':
-				break
 			if comando == 'mkdir':
 				name =  line.split(' ')[1]
 				sist.metadados['files'].append(create_directoy(name))
@@ -118,5 +152,10 @@ while 1:
 				else:
 					destino = line.split(' ')[2]
 				file = create_file(origem)					
-				sist.metadados = save_file(file,sist.metadados, destino)
+				save_file(file,sist.metadados, destino)
+				save_mount(sist)
+			if comando == 'rm':
+				arquivo = line.split(' ')[1]
+				rm(arquivo, sist)
+				save_mount(sist)
 
