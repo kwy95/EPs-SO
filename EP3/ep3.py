@@ -1,10 +1,10 @@
 import datetime
 import json
 
-def create_directoy(name):
+def create_directory(name):
 	return {
-		'files' : [],
 		'Nome' :name,
+		'files' : [],
 		'Tempo_criado' : datetime.datetime.now().strftime('%d/%m/%Y %H:%M'),
 		'Tempo_modificado' : datetime.datetime.now().strftime('%d/%m/%Y %H:%M'),
 		'Tempo_acessado' : datetime.datetime.now().strftime('%d/%m/%Y %H:%M'),
@@ -25,7 +25,7 @@ def mount(file):
 		f.close()
 	except IOError:
 		sistema = Sistema(file)
-		sistema.metadados = create_directoy('/')
+		sistema.metadados = create_directory('/')
 		f = open(file, 'w')
 		json.dump(sistema.metadados, f)
 		f.close()
@@ -69,10 +69,10 @@ def create_file(origem):
 			file['data'].append(block)
 			file['Tamanho'] += block.__sizeof__()
 	return file
-	
+
 def save_file(file,metadados, destino):
 	if destino == ' ':
-		metadados['files'].append(file) 
+		metadados['files'].append(file)
 	else:
 		for i in range(len(metadados['files'])):
 			file = metadados['files'][i]
@@ -100,7 +100,7 @@ while 1:
 				break
 			if comando == 'mkdir':
 				name =  line.split(' ')[1]
-				sist.metadados['files'].append(create_directoy(name))
+				sist.metadados['files'].append(create_directory(name))
 				save_mount(sist)
 			if comando == 'umount':
 				save_mount(sist)
@@ -117,6 +117,6 @@ while 1:
 					destino = ' '
 				else:
 					destino = line.split(' ')[2]
-				file = create_file(origem)					
+				file = create_file(origem)
 				sist.metadados = save_file(file,sist.metadados, destino)
 
