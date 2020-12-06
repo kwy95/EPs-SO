@@ -64,10 +64,10 @@ def create_file(origem):
 		block = f.read(4096)
 		file['data'].append(block)
 		file['Tamanho'] += block.__sizeof__() -33
-		while block != b'':
+		while block:
 			block = f.read(4096)
 			file['data'].append(block)
-			file['Tamanho'] += block.__sizeof__() -33
+			file['Tamanho'] += block.__sizeof__()
 	return file
 	
 def save_file(file,metadados, destino):
