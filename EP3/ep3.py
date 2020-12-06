@@ -1,13 +1,16 @@
 import datetime
 import json
 
+# abcdefg hijkl mn ABC DEF G 0123 45 6789
+
 def create_directory(name):
 	return {
-		'Nome' :name,
+		'Nome' : name,
 		'files' : [],
 		'Tempo_criado' : datetime.datetime.now().strftime('%d/%m/%Y %H:%M'),
 		'Tempo_modificado' : datetime.datetime.now().strftime('%d/%m/%Y %H:%M'),
 		'Tempo_acessado' : datetime.datetime.now().strftime('%d/%m/%Y %H:%M'),
+		'Dir' : 0,
 	}
 
 class Sistema(object):
@@ -15,21 +18,23 @@ class Sistema(object):
 	def __init__(self, filename):
 		self.filename = filename
 		self.metadados = {}
+		self.bitmap = {}
+		self.fat = {}
 
 def mount(file):
 	try:
+		print('arquivos existe')
 		f = open(file)
 		sistema = Sistema(file)
 		sistema.metadados = json.load(f)
-		print('arquivos existe')
 		f.close()
 	except IOError:
+		print("arquivo não existe, criando um")
 		sistema = Sistema(file)
 		sistema.metadados = create_directory('/')
-		f = open(file, 'w')
+		f = open(file, 'w+')
 		json.dump(sistema.metadados, f)
 		f.close()
-		print("arquivo não existe, criando um")
 	return sistema
 
 def ls(metadados, path_dir):
@@ -70,7 +75,7 @@ def create_file(origem):
 			file['Tamanho'] += block.__sizeof__()
 	return file
 
-def save_file(file,metadados, destino):
+def save_file(file, metadados, destino):
 	if destino == ' ':
 		metadados['files'].append(file)
 	else:
