@@ -131,6 +131,7 @@ while 1:
 		if mounted == False:
 			print('Você tem que montar algum arquivo para outros comandos')
 		else:
+			print(sist.metadados)
 			comando = line.split(' ')[0]
 			if comando == 'mkdir':
 				name =  line.split(' ')[1]
@@ -153,9 +154,7 @@ while 1:
 					destino = line.split(' ')[2]
 				file = create_file(origem)					
 				save_file(file,sist.metadados, destino)
-				save_mount(sist)
 			if comando == 'rm':
 				arquivo = line.split(' ')[1]
 				rm(arquivo, sist)
-				save_mount(sist)
 
