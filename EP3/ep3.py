@@ -32,10 +32,54 @@ def mount(file):
 		print("arquivo não existe, criando um")
 	return sistema
 
+def ls(metadados, path_dir):
+	if path_dir == ' ':
+		for file in metadados['files']:
+			print(file['Nome'])
+	else:
+		for file in metadados['files']:
+			if 'files' in file and file['Nome'] == path_dir.split('/')[0]: #é um diretorio
+				if path_dir.split('/')[0] == path_dir:
+					ls(file, ' ')
+				else:
+					ls(file , '/'.join(path_dir.split('/')[1,-1]))
+
 def save_mount(sistema):
 	f = open(sistema.filename, 'w')
 	json.dump(sistema.metadados, f)
 	f.close()
+
+def create_file(origem):
+	nome = origem.split('\\')[-1]
+	file = {
+	'data' : [],
+	'Nome' : nome,
+	'Tamanho' : 0,
+	'Tempo_criado' : datetime.datetime.now().strftime('%d/%m/%Y %H:%M'),
+	'Tempo_modificado' : datetime.datetime.now().strftime('%d/%m/%Y %H:%M'),
+	'Tempo_acessado' : datetime.datetime.now().strftime('%d/%m/%Y %H:%M'),
+	}
+
+	with open(origem, 'r') as f:
+		block = f.read(4096)
+		file['data'].append(block)
+		file['Tamanho'] += block.__sizeof__() -33
+		while block != b'':
+			block = f.read(4096)
+			file['data'].append(block)
+			file['Tamanho'] += block.__sizeof__() -33
+	return file
+	
+def save_file(file,metadados, destino):
+	if destino == ' ':
+		metadados['files'].append(file) 
+	else:
+		for file in metadados['files']:
+			if 'files' in file and file['Nome'] == destino.split('/')[0]: #é um diretorio
+				if destino.split('/')[0] == destino:
+					save_file(file,metadados, ' ')
+				else:
+					save_file(file ,metadados, '/'.join(destino.split('/')[1,-1]))
 
 mounted = False
 while 1:
@@ -59,4 +103,17 @@ while 1:
 				save_mount(sist)
 				sist = None
 				mounted = False
+			if comando == 'ls':
+				if len(line.split(' ')) == 1:
+					ls(sist.metadados, ' ')
+				else:
+					ls(sist.metadados, line.split(' ')[1])
+			if comando == 'cp':
+				origem = line.split(' ')[1]
+				if len(line.split(' ')) == 2:
+					destino = ' '
+				else:
+					destino = line.split(' ')[2]
+				file = create_file(origem)					
+				save_file(file,sist.metadados, destino)
 
