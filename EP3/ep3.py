@@ -1,17 +1,20 @@
-import datetime
+from datetime import datetime
 import json
 
 # abcdefg hijkl mn ABC DEF G 0123 45 6789
 
 def create_directory(name):
+	now = str(int(datetime.timestamp(datetime.now())))
 	return {
 		'Nome' : name,
-		'files' : [],
-		# 'Nome' :name,
-		'Tempo_criado' : datetime.datetime.now().strftime('%d/%m/%Y %H:%M'),
-		'Tempo_modificado' : datetime.datetime.now().strftime('%d/%m/%Y %H:%M'),
-		'Tempo_acessado' : datetime.datetime.now().strftime('%d/%m/%Y %H:%M'),
+		'tam_bytes' : 0 + len(name), # colocar o numero minimo pelo json + nome
+		'tam_blocos' : 1,
+		'Tempo_criado' : now,#.strftime('%d/%m/%Y %H:%M'),
+		'Tempo_modificado' : now,#.strftime('%d/%m/%Y %H:%M'),
+		'Tempo_acessado' : now,#.strftime('%d/%m/%Y %H:%M'),
+		'loc' : 0,
 		'Dir' : 0,
+		'files' : [],
 	}
 
 class Sistema(object):
@@ -19,31 +22,42 @@ class Sistema(object):
 	def __init__(self, filename):
 		self.filename = filename
 		self.metadados = {}
-		self.bitmap = {}
-		self.fat = {}
-		self.memory = []
-		for i in range(25600):
-			data = {}
-			data['Data'] = ''
-			data['Next'] = -1
-			self.memory.append(data)
+		self.bitmap = bytearray(b'\xff'*32)
+		self.bitmap[-1] -= 63
+		self.memory = [-1] * 250
+		# for i in range(25600):
+		# 	data = {}
+		# 	data['Data'] = ''
+		# 	data['Next'] = -1
+		# 	self.memory.append(data)
+
+def list_str(ls):
+	s = ""
+	for ss in ls:
+		s += str(ss)
+	return s
+
+def print_arquivos(sist):
+	pass
+
+def fill_block(sz):
+	st = "abcdefg hijkl mn ABC DEF G 0123 45 6789" * (int(sz/39)+1)
+	return st[:sz]
 
 def mount(file):
 	try:
-		print('arquivos existe')
 		f = open(file)
+		print('arquivos existe')
 		sistema = Sistema(file)
-		data = json.load(f)
+		data = json.load(f)# usar json.loads() pra usar string
 		sistema.metadados = data['metadados']
 		sistema.memory = data['memory']
-		print('arquivos existe')
 		f.close()
 	except IOError:
 		print("arquivo não existe, criando um")
 		sistema = Sistema(file)
 		sistema.metadados = create_directory('/')
 		save_mount(sistema)
-		print("arquivo não existe, criando um")
 	return sistema
 
 def ls(metadados, path_dir):
@@ -76,10 +90,12 @@ def rm(arquivo, sist):
 
 
 def save_mount(sistema):
-	f = open(sistema.filename, 'w')
-	data = {'metadados' : sistema.metadados,
-	'memory' : sistema.memory}
-	json.dump(data, f)
+	f = open(sistema.filename, 'w+')
+	f.write(bin(int(sistema.bitmap.hex(), 16))[2:])
+	f.seek(256)
+	data = {'memory' : sistema.memory,
+	'metadados' : sistema.metadados}
+	json.dump(data, f, indent=None)
 	f.close()
 
 def find_free_space(sist):
@@ -88,7 +104,7 @@ def find_free_space(sist):
 			return i
 
 def create_file(origem, sist):
-	nome = origem.split('\\')[-1]
+	nome = origem.split('/')[-1]
 	file = {
 	'localiz' : -1,
 	'Nome' : nome,
@@ -121,28 +137,30 @@ def save_file(file, metadados, destino):
 			file = metadados['files'][i]
 			if 'files' in file and file['Nome'] == destino.split('/')[0]: #é um diretorio
 				if destino.split('/')[0] == destino:
-					save_file(file,metadados, ' ')
+					save_file(file, metadados, ' ')
 				else:
-					save_file(file ,metadados, '/'.join(destino.split('/')[1,-1]))
+					save_file(file, metadados, '/'.join(destino.split('/')[1,-1]))
 
 
 mounted = False
 while 1:
 	line = input('[ep3]: ')
-	if line.split(' ')[0] == 'mount':
+	comando = line.split(' ')[0]
+	if comando == 'mount':
 		file = line.split(' ')[1]
 		sist = mount(file)
 		mounted = True
-	elif line.split(' ')[0] == 'sai':
+	elif comando == 'sai':
 		break
 	else:
 		if mounted == False:
 			print('Você tem que montar algum arquivo para outros comandos')
 		else:
 			print(sist.metadados)
-			comando = line.split(' ')[0]
 			if comando == 'mkdir':
-				name =  line.split(' ')[1]
+				path = line.split(' ')[1].split('/')
+				name = path[-1]
+				# print(path)
 				sist.metadados['files'].append(create_directory(name))
 				save_mount(sist)
 			if comando == 'umount':
