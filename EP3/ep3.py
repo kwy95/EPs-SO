@@ -74,12 +74,14 @@ def save_file(file,metadados, destino):
 	if destino == ' ':
 		metadados['files'].append(file) 
 	else:
-		for file in metadados['files']:
+		for i in range(len(metadados['files'])):
+			file = metadados['files'][i]
 			if 'files' in file and file['Nome'] == destino.split('/')[0]: #é um diretorio
 				if destino.split('/')[0] == destino:
-					save_file(file,metadados, ' ')
+					metadados['files'][i] = save_file(file,metadados, ' ')
 				else:
-					save_file(file ,metadados, '/'.join(destino.split('/')[1,-1]))
+					metadados['files'][i] = save_file(file ,metadados, '/'.join(destino.split('/')[1,-1]))
+	return metadados
 
 mounted = False
 while 1:
@@ -92,6 +94,7 @@ while 1:
 		if mounted == False:
 			print('Você tem que montar algum arquivo para outros comandos')
 		else:
+			print(sist.metadados)
 			comando = line.split(' ')[0]
 			if comando == 'sai':
 				break
@@ -115,5 +118,5 @@ while 1:
 				else:
 					destino = line.split(' ')[2]
 				file = create_file(origem)					
-				save_file(file,sist.metadados, destino)
+				sist.metadados = save_file(file,sist.metadados, destino)
 
