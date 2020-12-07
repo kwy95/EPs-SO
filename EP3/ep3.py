@@ -71,6 +71,23 @@ def mkdir(path, sist):
 	else:
 		print("Nao ha espaco para criar o diretorio pedido")
 
+def rmdir(path, sist):
+    parent, p_obj, p_bl = get_obj(path.split('/')[:-1], sist)
+    for o in p_obj:
+        if o['dir'] == 1:
+            rmdir(path+'/'+o['Nome'], sist)
+            parent_dir = json.loads(sist.blocos[parent['loc']])
+            new_data = []
+            for data in parent_dir:
+                if data['Nome'] == o['Nome']:
+                    pass
+                else:
+                    new_data.append(data)
+            parent_dir = new_data
+            sist.blocos[parent['loc']] = json.dumps(parent_dir)
+        else:
+            rm(path+'/'+o['Nome'], sist)
+
 def cp(origem, destino, sist):
 	nome = destino.split('/')[-1]
 	now = str(int(datetime.timestamp(datetime.now())))
@@ -218,17 +235,11 @@ def mount(file):
 		save_mount(sistema)
 	return sistema
 
-def ls(metadados, path_dir):
-	if path_dir == ' ':
-		for file in metadados['files']:
-			print(file['Nome'])
-	else:
-		for file in metadados['files']:
-			if 'files' in file and file['Nome'] == path_dir.split('/')[0]: #é um diretorio
-				if path_dir.split('/')[0] == path_dir:
-					ls(file, ' ')
-				else:
-					ls(file , '/'.join(path_dir.split('/')[1,-1]))
+def ls(sist, path_dir):
+	_, data , _ = get_obj('/', sist)
+	for i in range(0 ,len(data)):
+		file = data[i]
+		print(file['Nome'])
 
 
 def rm(arquivo, sist):
@@ -295,10 +306,7 @@ while 1:
 				sist = None
 				mounted = False
 			if comando == 'ls':
-				if len(line.split(' ')) == 1:
-					ls(sist.root, ' ')
-				else:
-					ls(sist.root, line.split(' ')[1])
+				ls(sist, line.split(' ')[1])
 			if comando == 'cp':
 				origem = line.split(' ')[1]
 				if len(line.split(' ')) == 2:
