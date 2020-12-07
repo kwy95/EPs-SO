@@ -78,21 +78,25 @@ def mkdir(path, sist):
 		print("Nao ha espaco para criar o diretorio pedido", location, parent['tam_by'])
 
 def rmdir(path, sist):
-    parent, p_obj, p_bl = get_obj(path.split('/')[:-1], sist)
-    for o in p_obj:
-        if o['dir'] == 1:
-            rmdir(path+'/'+o['Nome'], sist)
-            parent_dir = json.loads(sist.blocos[parent['loc']])
-            new_data = []
-            for data in parent_dir:
-                if data['Nome'] == o['Nome']:
-                    pass
-                else:
-                    new_data.append(data)
-            parent_dir = new_data
-            sist.blocos[parent['loc']] = json.dumps(parent_dir)
-        else:
-            rm(path+'/'+o['Nome'], sist)
+	parent, p_obj, p_bl = get_obj(path.split('/')[:-1], sist)
+	name = path.split('/')[-1]
+	for o in p_obj:
+		if o['dir'] == 1 and o['Nome'] == name:
+			_, new_p_obj, _ = get_obj(path, sist)
+			for i in range(len(new_p_obj)):
+				file = new_p_obj[i]
+				rmdir(path+'/'+file['Nome'], sist)
+			parent_dir = json.loads(sist.blocos[parent['loc']])
+			new_data = []
+			for data in parent_dir:
+				if data['Nome'] == o['Nome']:
+					pass
+				else:
+					new_data.append(data)
+			parent_dir = new_data
+			sist.blocos[parent['loc']] = json.dumps(parent_dir)
+		if o['dir'] == 0 and o['name'] == name:
+			rm(path+'/'+o['Nome'], sist)
 
 def cp(origem, destino, sist):
 	parent, p_obj, p_bl = get_obj(destino.split('/')[:-1], sist)
@@ -262,9 +266,8 @@ def mount(file):
 	return sistema
 
 def ls(sist, path_dir):
-	_, data , _ = get_obj('/', sist)
-	for i in range(0 ,len(data)):
-		file = data[i]
+	_, data , _ = get_obj(path_dir, sist)
+	for file in data:
 		print(file['Nome'])
 
 
