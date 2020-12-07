@@ -56,79 +56,104 @@ def mkdir(path, sist):
 		sist.bitmap[location] = 0
 		sist.fat[location] = -1
 
-		for o in p_obj:
-			if o['Nome'] == parent['Nome']:
-				o['tam_by'] += 1
-				o['t_m'] = now
-				o['t_a'] = now
-				break
+		if parent['Nome'] == '/':
+			sist.root['tam_by'] += 1
+			sist.root['t_m'] = now
+			sist.root['t_a'] = now
+			update_bl0(sist)
+		else:
+			for o in p_obj:
+				if o['Nome'] == parent['Nome']:
+					o['tam_by'] += 1
+					o['t_m'] = now
+					o['t_a'] = now
+					break
+			sist.blocos[p_bl] = json.dumps(p_obj)
 
 		parent_dir = json.loads(sist.blocos[parent['loc']])
 		parent_dir.append(novo)
 
-		sist.blocos[p_bl] = json.dumps(p_obj)
 		sist.blocos[parent['loc']] = json.dumps(parent_dir)
 	else:
-		print("Nao ha espaco para criar o diretorio pedido")
+		print("Nao ha espaco para criar o diretorio pedido", location, parent['tam_by'])
 
 def cp(origem, destino, sist):
-	nome = destino.split('/')[-1]
-	now = str(int(datetime.timestamp(datetime.now())))
-	file = {
-		'Nome' : nome,
-		'tam_by' : 0,
-		'tam_bl' : 1,
-		't_0' : now,
-		't_m' : now,
-		't_a' : now,
-		'loc' : -1,
-		'dir' : 0,
-	}
-	sz_bytes = 0
-	with open(origem, 'r') as f:
-		data = f.read(SBLOCOS)
-		sz_bytes += len(data)
-		i = find_free_space(sist)
-		file['loc'] = i
-		# file['data'] = data
-		sist.bitmap[i] = 0
-		sist.fat[i] = -1
-		sist.blocos[i] = data
+	parent, p_obj, p_bl = get_obj(destino.split('/')[:-1], sist)
+	location = find_free_space(sist)
 
-		data = f.read(SBLOCOS)
-		while data:
-			j = find_free_space(sist)
-			sz_bytes += len(data)
-			# file['data'] += data
-			sist.blocos[j] = data
-			sist.fat[i] = j
-			sist.fat[j] = -1
-			sist.bitmap[j] = 0
+	if parent['tam_by'] < 25 and location != -1:
+		nome = destino.split('/')[-1]
+		now = str(int(datetime.timestamp(datetime.now())))
+		file = {
+			'Nome' : nome,
+			'tam_by' : 0,
+			'tam_bl' : 1,
+			't_0' : now,
+			't_m' : now,
+			't_a' : now,
+			'loc' : -1,
+			'dir' : 0,
+		}
+		count_bl = 0
+		sz_bytes = 0
+		with open(origem, 'r') as f:
 			data = f.read(SBLOCOS)
+			sz_bytes += len(data)
+			count_bl += 1
+			i = find_free_space(sist)
+			file['loc'] = i
+			# file['data'] = data
+			sist.bitmap[i] = 0
+			sist.fat[i] = -1
+			sist.blocos[i] = data
 
-	return file
+			data = f.read(SBLOCOS)
+			while data:
+				j = find_free_space(sist)
+				sz_bytes += len(data)
+				count_bl += 1
+				sist.blocos[j] = data
+				sist.fat[i] = j
+				sist.fat[j] = -1
+				sist.bitmap[j] = 0
+				data = f.read(SBLOCOS)
+		file['tam_by'] = sz_bytes
+		file['tam_bl'] = count_bl
+		up = json.loads(sist.blocos[parent['loc']])
+		up.append(file)
+		sist.blocos[parent['loc']] = json.dumps(up)
+	else:
+		print('o arquivo nao cabe aqui')
 
 def write_blocks(sist, i = -1):
 	fp = open(sist.filename, "w+")
 	data_str = ""
 	if i != -1:
 		data = sist.blocos[i]
-		data_str = data + fill_block(SBLOCOS - len(data))
+		l = hex(len(data))[2:]
+		lstr = '0'*(3-len(l)) + l
+		data_str = lstr+ data + fill_block(SBLOCOS - len(data) - 3)
 		fp.seek(i * SBLOCOS)
 	else:
 		for data in sist.blocos:
-			data_str += data + fill_block(SBLOCOS - len(data))
+			l = hex(len(data))[2:]
+			lstr = '0'*(3-len(l)) + l
+			data_str += lstr + data + fill_block(SBLOCOS - len(data) - 3)
 	fp.write(data_str)
 	fp.close()
 
-def load_bitfat(sist, fp):
+def load_sys(sist, fp):
+	# fp = open(fn, 'r')
 	fp.seek(0)
+	sz = int(fp.read(3), 16)
 	bmstr = fp.read(64)
 	fatstr = fp.read(2*NBLOCOS)
+	print(bmstr, fatstr)
 	i = 0
 	for h in zip(bmstr):
 		bits = bin(int(h[0], 16))[2:]
 		for b in zip(bits):
+			print(i, h, b, sz)
 			sist.bitmap[i] = b[0]
 			i += 1
 	i = 0
@@ -144,25 +169,34 @@ def load_bitfat(sist, fp):
 			i += 1
 		count += 1
 
+	sist.root = json.loads(fp.read(sz - 64 - 2*NBLOCOS))
+
 	fp.seek(0)
-	bloc = fp.read(SBLOCOS)
+	sz = int(fp.read(3), 16)
+	bloc = fp.read(sz)
 	b = 0
 	while b < NBLOCOS and bloc:
 		sist.blocos[b] = bloc
 		b += 1
-		bloc = fp.read(SBLOCOS)
+		fp.seek(b * SBLOCOS)
+		sz = int('0' + fp.read(3), 16)
+		bloc = fp.read(sz)
+	# fp.close()
+	return sist
 
-def update_bitfat(sist : Sistema, fp):
+def update_bl0(sist : Sistema):
 	bmstr = hex(int(lst2str(sist.bitmap), 2))[2:]
 	bmstr_l = '0' * (32 - len(bmstr)) + bmstr
 	fatstr_l = ""
 	for v in sist.fat:
 		fatstr = hex(v+1)[2:] # offset de 1 para evitar numeros negativos
 		fatstr_l += '0' * (2 - len(fatstr)) + fatstr
-	fill = fill_block(SBLOCOS - 564)
+	rtstr = json.dumps(sist.root)
+	# fill = fill_block(SBLOCOS - 564 - len(rtstr))
 
-	fp.seek(0)
-	fp.write(bmstr_l + fatstr_l + fill)
+	sist.blocos[0] = bmstr_l + fatstr_l + rtstr
+
+
 
 
 def lst2str(ls):
@@ -176,21 +210,15 @@ def fill_block(sz):
 	return st[:sz]
 
 def mount(file):
+	sistema = Sistema(file)
 	try:
 		f = open(file)
+		# f.close()
 		print('arquivos existe')
-		sistema = Sistema(file)
-		load_bitfat(sistema, f)
-		f.seek(SBLOCOS)
-		d = f.read()
-		print(d)
-		data = json.loads(d)# usar json.loads() pra usar string
-		sistema.root = data['metadados']
-		# sistema.fat = data['fat']
+		sistema = load_sys(sistema, f)
 		f.close()
 	except IOError:
 		print("arquivo não existe, criando um")
-		sistema = Sistema(file)
 		now = str(int(datetime.timestamp(datetime.now())))
 		sistema.root = {
 			'Nome' : '/',
@@ -214,7 +242,7 @@ def mount(file):
 			fatstr = hex(v+1)[2:] # offset de 1 para evitar numeros negativos
 			fatstr_l += '0' * (2 - len(fatstr)) + fatstr
 		sistema.blocos[0] = bmstr_l + fatstr_l + json.dumps(sistema.root)
-		sistema.blocos[1] = "[]"
+		# sistema.blocos[1] = "[]"
 		save_mount(sistema)
 	return sistema
 
@@ -249,7 +277,7 @@ def rm(arquivo, sist):
 
 def save_mount(sistema):
 	# f = open(sistema.filename, 'w+')
-	# update_bitfat(sistema, f)
+	# update_bl0(sistema, f)
 	write_blocks(sistema)
 	# f.close()
 
@@ -287,7 +315,6 @@ while 1:
 		if mounted == False:
 			print('Você tem que montar algum arquivo para outros comandos')
 		else:
-			print(sist.blocos)
 			if comando == 'mkdir':
 				mkdir(line.split(' ')[1], sist)
 			if comando == 'umount':
@@ -301,13 +328,13 @@ while 1:
 					ls(sist.root, line.split(' ')[1])
 			if comando == 'cp':
 				origem = line.split(' ')[1]
-				if len(line.split(' ')) == 2:
-					destino = ' '
-				else:
-					destino = line.split(' ')[2]
-				file = cp(origem)
-				save_file(file, sist.root, destino)
+				destino = line.split(' ')[2]
+				file = cp(origem, destino, sist)
+				# save_file(file, sist.root, destino)
 			if comando == 'rm':
 				arquivo = line.split(' ')[1]
 				rm(arquivo, sist)
+			print(sist.bitmap)
+			print(sist.fat)
+
 
