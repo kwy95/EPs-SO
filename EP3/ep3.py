@@ -266,9 +266,13 @@ def mount(file):
 	return sistema
 
 def ls(sist, path_dir):
-	_, data , _ = get_obj(path_dir, sist)
-	for file in data:
-		print(file['Nome'])
+	data, _, _ = get_obj(path_dir, sist)
+	for file in json.loads(sist.blocos[data['loc']]):
+		if file['dir'] == 0:
+			print("nome:", file['Nome'], "; tamanho:", file['tam_by'], "; data de mod:", datetime.fromtimestamp(file['t_m']).strftime(%d/%m/%y - %H : %M))
+		else:
+			print("*nome:", file['Nome'], "; tamanho: ----; data de mod:", datetime.fromtimestamp(file['t_m']).strftime(%d/%m/%y - %H : %M))
+
 
 
 def rm(arquivo, sist):
