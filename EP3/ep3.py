@@ -14,7 +14,7 @@ class Sistema(object):
 		self.bitmap = [1]*NBLOCOS + [0]*6
 		self.fat = [-1]*NBLOCOS
 		self.root = None
-		self.blocos = [None]*NBLOCOS
+		self.blocos = ['[]']*NBLOCOS
 
 def get_obj(path, sist):
 	cur = sist.root
@@ -53,6 +53,8 @@ def mkdir(path, sist):
 			'loc' : location,
 			'dir' : 1,
 		}
+		sist.bitmap[location] = 0
+		sist.fat[location] = -1
 
 		for o in p_obj:
 			if o['Nome'] == parent['Nome']:
@@ -70,7 +72,7 @@ def mkdir(path, sist):
 		print("Nao ha espaco para criar o diretorio pedido")
 
 def cp(origem, destino, sist):
-	nome = origem.split('/')[-1]
+	nome = destino.split('/')[-1]
 	now = str(int(datetime.timestamp(datetime.now())))
 	file = {
 		'Nome' : nome,
@@ -200,6 +202,11 @@ def mount(file):
 			'loc' : 1,
 			'dir' : 1,
 		}
+		sistema.bitmap[0] = 0
+		sistema.bitmap[1] = 0
+		sistema.fat[0] = -1
+		sistema.fat[1] = -1
+
 		bmstr = hex(int(lst2str(sistema.bitmap), 2))[2:]
 		bmstr_l = '0' * (32 - len(bmstr)) + bmstr
 		fatstr_l = ""
@@ -207,7 +214,7 @@ def mount(file):
 			fatstr = hex(v+1)[2:] # offset de 1 para evitar numeros negativos
 			fatstr_l += '0' * (2 - len(fatstr)) + fatstr
 		sistema.blocos[0] = bmstr_l + fatstr_l + json.dumps(sistema.root)
-		sistema.blocos[1] = "[{}]"
+		sistema.blocos[1] = "[]"
 		save_mount(sistema)
 	return sistema
 
@@ -241,11 +248,10 @@ def rm(arquivo, sist):
 
 
 def save_mount(sistema):
-	f = open(sistema.filename, 'w+')
-	update_bitfat(sistema, f)
-	data = { 'metadados' : sistema.root }
-	json.dump(data, f, indent=None)
-	f.close()
+	# f = open(sistema.filename, 'w+')
+	# update_bitfat(sistema, f)
+	write_blocks(sistema)
+	# f.close()
 
 def find_free_space(sist, start = 1):
 	for i in range(start, NBLOCOS):
@@ -281,7 +287,7 @@ while 1:
 		if mounted == False:
 			print('Você tem que montar algum arquivo para outros comandos')
 		else:
-			print(sist.root)
+			print(sist.blocos)
 			if comando == 'mkdir':
 				mkdir(line.split(' ')[1], sist)
 			if comando == 'umount':
