@@ -13,33 +13,61 @@ class Sistema(object):
 		self.filename = filename
 		self.bitmap = [1]*NBLOCOS + [0]*6
 		self.fat = [-1]*NBLOCOS
-		self.root = {}
-		self.blocos = []
+		self.root = None
+		self.blocos = [None]*NBLOCOS
 
 def get_obj(path, sist):
-	nxt = path[0]
-	i = 1
-	obj = json.loads(sist.blocos[sist.root['loc']])
+	cur = sist.root
+	bl = cur['loc']
+	print(cur, bl)
+	obj = json.loads(sist.blocos[bl])
+	count = 0
+	for nxt in path:
+		count += 1
+		if nxt == '':
+			continue
+		for o in obj:
+			if o['Nome'] == nxt:
+				cur = o
+				if o['dir'] == 1 and count < len(path):
+					bl = o['loc']
+					obj = json.loads(sist.blocos[bl])
+				break
+	return cur, obj, bl
 
-	for o in obj:
-		if o['dir'] == 1 and o['Nome'] == nxt:
-			obj = json.loads(sist.blocos[o['loc']])
 
-
-def mkdir(path):
-	name = path.split('/')[-1]
-	now = str(int(datetime.timestamp(datetime.now())))
+def mkdir(path, sist):
+	parent, p_obj, p_bl = get_obj(path.split('/')[:-1], sist)
 	location = find_free_space(sist)
-	return {
-		'Nome' : name,
-		'tam_by' : 0, #!! colocar o numero minimo pelo json + nome
-		'tam_bl' : 1,
-		't_0' : now,
-		't_m' : now,
-		't_a' : now,
-		'loc' : 0,
-		'dir' : 1,
-	}
+
+	if parent['tam_by'] < 25 and location != -1:
+		name = path.split('/')[-1]
+		now = str(int(datetime.timestamp(datetime.now())))
+		novo = {
+			'Nome' : name,
+			'tam_by' : 0,
+			'tam_bl' : 1,
+			't_0' : now,
+			't_m' : now,
+			't_a' : now,
+			'loc' : location,
+			'dir' : 1,
+		}
+
+		for o in p_obj:
+			if o['Nome'] == parent['Nome']:
+				o['tam_by'] += 1
+				o['t_m'] = now
+				o['t_a'] = now
+				break
+
+		parent_dir = json.loads(sist.blocos[parent['loc']])
+		parent_dir.append(novo)
+
+		sist.blocos[p_bl] = json.dumps(p_obj)
+		sist.blocos[parent['loc']] = json.dumps(parent_dir)
+	else:
+		print("Nao ha espaco para criar o diretorio pedido")
 
 def cp(origem, destino, sist):
 	nome = origem.split('/')[-1]
@@ -134,11 +162,6 @@ def update_bitfat(sist : Sistema, fp):
 	fp.seek(0)
 	fp.write(bmstr_l + fatstr_l + fill)
 
-def get_data(filepath, sist):
-	path = filepath.split('/')
-	name = path[-1]
-	i = 1
-
 
 def lst2str(ls):
 	s = ""
@@ -166,7 +189,25 @@ def mount(file):
 	except IOError:
 		print("arquivo não existe, criando um")
 		sistema = Sistema(file)
-		sistema.root = mkdir('/')
+		now = str(int(datetime.timestamp(datetime.now())))
+		sistema.root = {
+			'Nome' : '/',
+			'tam_by' : 0,
+			'tam_bl' : 1,
+			't_0' : now,
+			't_m' : now,
+			't_a' : now,
+			'loc' : 1,
+			'dir' : 1,
+		}
+		bmstr = hex(int(lst2str(sistema.bitmap), 2))[2:]
+		bmstr_l = '0' * (32 - len(bmstr)) + bmstr
+		fatstr_l = ""
+		for v in sistema.fat:
+			fatstr = hex(v+1)[2:] # offset de 1 para evitar numeros negativos
+			fatstr_l += '0' * (2 - len(fatstr)) + fatstr
+		sistema.blocos[0] = bmstr_l + fatstr_l + json.dumps(sistema.root)
+		sistema.blocos[1] = "[{}]"
 		save_mount(sistema)
 	return sistema
 
@@ -210,6 +251,7 @@ def find_free_space(sist, start = 1):
 	for i in range(start, NBLOCOS):
 		if sist.bitmap[i] == 1:
 			return i
+	return -1
 
 
 def save_file(file, metadados, destino):
@@ -241,11 +283,7 @@ while 1:
 		else:
 			print(sist.root)
 			if comando == 'mkdir':
-				path = line.split(' ')[1].split('/')
-				name = path[-1]
-				# print(path)
-				sist.root['files'].append(mkdir(name))
-				save_mount(sist)
+				mkdir(line.split(' ')[1], sist)
 			if comando == 'umount':
 				save_mount(sist)
 				sist = None
