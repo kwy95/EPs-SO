@@ -4,29 +4,92 @@ import json
 # abcdefg hijkl mn ABC DEF G 0123 45 6789
 NBLOCOS = 250 # numero de blocos
 SBLOCOS = 4000 # numero de caracteres por bloco
+DLIM = 25
 
-
-def create_directory(name):
-	now = str(int(datetime.timestamp(datetime.now())))
-	return {
-		'Nome' : name,
-		'tam_bytes' : 0 + len(name), #!! colocar o numero minimo pelo json + nome
-		'tam_blocos' : 1,
-		'Tempo_criado' : now,#.strftime('%d/%m/%Y %H:%M'),
-		'Tempo_modificado' : now,#.strftime('%d/%m/%Y %H:%M'),
-		'Tempo_acessado' : now,#.strftime('%d/%m/%Y %H:%M'),
-		'loc' : 0,
-		'dir' : 1,
-		'files' : [],
-	}
 
 class Sistema(object):
 	"""docstring for Sistema"""
 	def __init__(self, filename):
 		self.filename = filename
 		self.bitmap = [1]*NBLOCOS + [0]*6
-		self.fat = [-1] * NBLOCOS
-		self.metadados = {}
+		self.fat = [-1]*NBLOCOS
+		self.root = {}
+		self.blocos = []
+
+def get_obj(path, sist):
+	nxt = path[0]
+	i = 1
+	obj = json.loads(sist.blocos[sist.root['loc']])
+
+	for o in obj:
+		if o['dir'] == 1 and o['Nome'] == nxt:
+			obj = json.loads(sist.blocos[o['loc']])
+
+
+def mkdir(path):
+	name = path.split('/')[-1]
+	now = str(int(datetime.timestamp(datetime.now())))
+	location = find_free_space(sist)
+	return {
+		'Nome' : name,
+		'tam_by' : 0, #!! colocar o numero minimo pelo json + nome
+		'tam_bl' : 1,
+		't_0' : now,
+		't_m' : now,
+		't_a' : now,
+		'loc' : 0,
+		'dir' : 1,
+	}
+
+def cp(origem, destino, sist):
+	nome = origem.split('/')[-1]
+	now = str(int(datetime.timestamp(datetime.now())))
+	file = {
+		'Nome' : nome,
+		'tam_by' : 0,
+		'tam_bl' : 1,
+		't_0' : now,
+		't_m' : now,
+		't_a' : now,
+		'loc' : -1,
+		'dir' : 0,
+	}
+	sz_bytes = 0
+	with open(origem, 'r') as f:
+		data = f.read(SBLOCOS)
+		sz_bytes += len(data)
+		i = find_free_space(sist)
+		file['loc'] = i
+		# file['data'] = data
+		sist.bitmap[i] = 0
+		sist.fat[i] = -1
+		sist.blocos[i] = data
+
+		data = f.read(SBLOCOS)
+		while data:
+			j = find_free_space(sist)
+			sz_bytes += len(data)
+			# file['data'] += data
+			sist.blocos[j] = data
+			sist.fat[i] = j
+			sist.fat[j] = -1
+			sist.bitmap[j] = 0
+			data = f.read(SBLOCOS)
+
+	return file
+
+def write_blocks(sist, i = -1):
+	fp = open(sist.filename, "w+")
+	data_str = ""
+	if i != -1:
+		data = sist.blocos[i]
+		data_str = data + fill_block(SBLOCOS - len(data))
+		fp.seek(i * SBLOCOS)
+	else:
+		for data in sist.blocos:
+			data_str += data + fill_block(SBLOCOS - len(data))
+	fp.write(data_str)
+	fp.close()
 
 def load_bitfat(sist, fp):
 	fp.seek(0)
@@ -34,7 +97,6 @@ def load_bitfat(sist, fp):
 	fatstr = fp.read(2*NBLOCOS)
 	i = 0
 	for h in zip(bmstr):
-		# print(h)
 		bits = bin(int(h[0], 16))[2:]
 		for b in zip(bits):
 			sist.bitmap[i] = b[0]
@@ -52,6 +114,14 @@ def load_bitfat(sist, fp):
 			i += 1
 		count += 1
 
+	fp.seek(0)
+	bloc = fp.read(SBLOCOS)
+	b = 0
+	while b < NBLOCOS and bloc:
+		sist.blocos[b] = bloc
+		b += 1
+		bloc = fp.read(SBLOCOS)
+
 def update_bitfat(sist : Sistema, fp):
 	bmstr = hex(int(lst2str(sist.bitmap), 2))[2:]
 	bmstr_l = '0' * (32 - len(bmstr)) + bmstr
@@ -64,6 +134,10 @@ def update_bitfat(sist : Sistema, fp):
 	fp.seek(0)
 	fp.write(bmstr_l + fatstr_l + fill)
 
+def get_data(filepath, sist):
+	path = filepath.split('/')
+	name = path[-1]
+	i = 1
 
 
 def lst2str(ls):
@@ -71,9 +145,6 @@ def lst2str(ls):
 	for ss in ls:
 		s += str(ss)
 	return s
-
-def print_arquivos(sist):
-	pass
 
 def fill_block(sz):
 	st = "abcdefg hijkl mn ABC DEF G 0123 45 6789" * (int(sz/39)+1)
@@ -89,13 +160,13 @@ def mount(file):
 		d = f.read()
 		print(d)
 		data = json.loads(d)# usar json.loads() pra usar string
-		sistema.metadados = data['metadados']
+		sistema.root = data['metadados']
 		# sistema.fat = data['fat']
 		f.close()
 	except IOError:
 		print("arquivo não existe, criando um")
 		sistema = Sistema(file)
-		sistema.metadados = create_directory('/')
+		sistema.root = mkdir('/')
 		save_mount(sistema)
 	return sistema
 
@@ -114,7 +185,7 @@ def ls(metadados, path_dir):
 
 def rm(arquivo, sist):
 	new_files = []
-	for file in sist.metadados['files']:
+	for file in sist.root['files']:
 		if file['Nome'] == arquivo:
 			loc = file['loc']
 			memoria = sist.fat[loc]
@@ -125,49 +196,21 @@ def rm(arquivo, sist):
 				memoria = sist.fat[loc]
 		else:
 			new_files.append(file)
-	sist.metadados['files'] = new_files
+	sist.root['files'] = new_files
 
 
 def save_mount(sistema):
 	f = open(sistema.filename, 'w+')
 	update_bitfat(sistema, f)
-	data = { 'metadados' : sistema.metadados }
+	data = { 'metadados' : sistema.root }
 	json.dump(data, f, indent=None)
 	f.close()
 
-def find_free_space(sist):
-	for i in range(len(sist.fat)):
-		if sist.fat[i]['Data'] == '':
+def find_free_space(sist, start = 1):
+	for i in range(start, NBLOCOS):
+		if sist.bitmap[i] == 1:
 			return i
 
-def create_file(origem, sist):
-	nome = origem.split('/')[-1]
-	now = str(int(datetime.timestamp(datetime.now())))
-	file = {
-		'Nome' : nome,
-		'tam_bytes' : 0,
-		'tam_blocos' : 0,
-		'Tempo_criado' : now,
-		'Tempo_modificado' : now,
-		'Tempo_acessado' : now,
-		'loc' : -1,
-		'dir' : 0,
-	}
-	loc = []
-	with open(origem, 'r') as f:
-		block = f.read(4096)
-		i = find_free_space(sist)
-		file['loc'] = i
-		sist.fat[i]['Data'] = block
-		loc.append(i)
-		while block:
-			block = f.read(4096)
-			i = find_free_space(sist)
-			sist.fat[i]['Data'] = block
-			loc.append(i)
-		for i in range(0,len(loc)-1):
-			sist.fat[i]['Next'] = loc[i+1]
-	return file
 
 def save_file(file, metadados, destino):
 	if destino == ' ':
@@ -196,12 +239,12 @@ while 1:
 		if mounted == False:
 			print('Você tem que montar algum arquivo para outros comandos')
 		else:
-			print(sist.metadados)
+			print(sist.root)
 			if comando == 'mkdir':
 				path = line.split(' ')[1].split('/')
 				name = path[-1]
 				# print(path)
-				sist.metadados['files'].append(create_directory(name))
+				sist.root['files'].append(mkdir(name))
 				save_mount(sist)
 			if comando == 'umount':
 				save_mount(sist)
@@ -209,17 +252,17 @@ while 1:
 				mounted = False
 			if comando == 'ls':
 				if len(line.split(' ')) == 1:
-					ls(sist.metadados, ' ')
+					ls(sist.root, ' ')
 				else:
-					ls(sist.metadados, line.split(' ')[1])
+					ls(sist.root, line.split(' ')[1])
 			if comando == 'cp':
 				origem = line.split(' ')[1]
 				if len(line.split(' ')) == 2:
 					destino = ' '
 				else:
 					destino = line.split(' ')[2]
-				file = create_file(origem)
-				save_file(file, sist.metadados, destino)
+				file = cp(origem)
+				save_file(file, sist.root, destino)
 			if comando == 'rm':
 				arquivo = line.split(' ')[1]
 				rm(arquivo, sist)
