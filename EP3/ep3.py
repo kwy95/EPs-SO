@@ -19,7 +19,7 @@ class Sistema(object):
 def get_obj(path, sist):
 	cur = sist.root
 	bl = cur['loc']
-	print(cur, bl)
+	# print(cur, bl)
 	obj = json.loads(sist.blocos[bl])
 	count = 0
 	for nxt in path:
@@ -165,13 +165,14 @@ def load_sys(sist, fp):
 	sz = int(fp.read(3), 16)
 	bmstr = fp.read(64)
 	fatstr = fp.read(2*NBLOCOS)
-	print(bmstr, fatstr)
+	# print(bmstr, fatstr)
 	i = 0
 	for h in zip(bmstr):
-		bits = bin(int(h[0], 16))[2:]
+		bt = bin(int(h[0], 16))[2:]
+		bits = '0'*(4-len(bt)) + bt
 		for b in zip(bits):
-			print(i, h, b, sz)
-			sist.bitmap[i] = b[0]
+			# print(i, h, b, sz)
+			sist.bitmap[i] = int(b[0])
 			i += 1
 	i = 0
 	count = 0
@@ -203,17 +204,14 @@ def load_sys(sist, fp):
 
 def update_bl0(sist : Sistema):
 	bmstr = hex(int(lst2str(sist.bitmap), 2))[2:]
-	bmstr_l = '0' * (32 - len(bmstr)) + bmstr
+	bmstr_l = '0' * (64 - len(bmstr)) + bmstr
 	fatstr_l = ""
 	for v in sist.fat:
 		fatstr = hex(v+1)[2:] # offset de 1 para evitar numeros negativos
 		fatstr_l += '0' * (2 - len(fatstr)) + fatstr
 	rtstr = json.dumps(sist.root)
-	# fill = fill_block(SBLOCOS - 564 - len(rtstr))
 
 	sist.blocos[0] = bmstr_l + fatstr_l + rtstr
-
-
 
 
 def lst2str(ls):
@@ -285,6 +283,9 @@ def rm(arquivo, sist):
 			new_files.append(file)
 	sist.root['files'] = new_files
 
+def cat(arq, sist):
+	obj, p_obj, p_bl = get_obj(arq, sist)
+	print(sist.blocos[obj['loc']])
 
 def save_mount(sistema):
 	# f = open(sistema.filename, 'w+')
@@ -342,7 +343,9 @@ while 1:
 			if comando == 'rm':
 				arquivo = line.split(' ')[1]
 				rm(arquivo, sist)
-			print(sist.bitmap)
-			print(sist.fat)
+			if comando == 'cat':
+				arquivo = line.split(' ')[1]
+				cat(arquivo, sist)
+			# print(sist.blocos)
 
 

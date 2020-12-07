@@ -4,4 +4,8 @@ Nomes                                    NUSP
 Rubens Gomes Neto                        9318484
 Murilo André Gomes Felipe                11221863
 
-BLAH BLAH BLAH
+Programa feito em python testado com essas configurações:
+PC1: Ubuntu 20.04.1 LTS ; Python 3.8.5
+PC2: Windows 10 ; Python 3.7.5
+
+Para rodar executar "python3 ep3.py"
