@@ -2,7 +2,8 @@ from datetime import datetime
 import json
 
 # abcdefg hijkl mn ABC DEF G 0123 45 6789
-NBLOCOS = 250
+NBLOCOS = 250 # numero de blocos
+SBLOCOS = 4000 # numero de caracteres por bloco
 
 
 def create_directory(name):
@@ -23,34 +24,46 @@ class Sistema(object):
 	"""docstring for Sistema"""
 	def __init__(self, filename):
 		self.filename = filename
-		# self.bitmap = bytearray(b'\xff'*32)
-		# self.bitmap[-1] -= 63
-		self.bitmap = ([1]*NBLOCOS).append([0]*6)
+		self.bitmap = [1]*NBLOCOS + [0]*6
 		self.fat = [-1] * NBLOCOS
 		self.metadados = {}
-		# for i in range(25600):
-		# 	data = {}
-		# 	data['Data'] = ''
-		# 	data['Next'] = -1
-		# 	self.fat.append(data)
 
-def get_bitfat(sist, fp):
+def load_bitfat(sist, fp):
 	fp.seek(0)
-	bmstr = fp.read(32)
-	fatstr = fp.read(NBLOCOS)
+	bmstr = fp.read(64)
+	fatstr = fp.read(2*NBLOCOS)
+	i = 0
 	for h in zip(bmstr):
-		bits = bin(int(h, 16))[2:]
+		# print(h)
+		bits = bin(int(h[0], 16))[2:]
 		for b in zip(bits):
-			sist.bitmap[i] = b
+			sist.bitmap[i] = b[0]
+			i += 1
+	i = 0
+	count = 0
+	hh = ""
+	for h in zip(fatstr):
+		if count % 2 == 0:
+			hh = h[0]
+		else:
+			hh += h[0]
+			pos = int(hh, 16) - 1 # ajuste de offset
+			sist.fat[i] = pos
+			i += 1
+		count += 1
 
 def update_bitfat(sist : Sistema, fp):
 	bmstr = hex(int(lst2str(sist.bitmap), 2))[2:]
-	fatstr = ""
+	bmstr_l = '0' * (32 - len(bmstr)) + bmstr
+	fatstr_l = ""
 	for v in sist.fat:
-		fatstr += str(v+1)
+		fatstr = hex(v+1)[2:] # offset de 1 para evitar numeros negativos
+		fatstr_l += '0' * (2 - len(fatstr)) + fatstr
+	fill = fill_block(SBLOCOS - 564)
 
 	fp.seek(0)
-	fp.write(bmstr + fatstr)
+	fp.write(bmstr_l + fatstr_l + fill)
+
 
 
 def lst2str(ls):
@@ -71,11 +84,13 @@ def mount(file):
 		f = open(file)
 		print('arquivos existe')
 		sistema = Sistema(file)
-		get_bitfat(sistema, f)
-
-		data = json.load(f)# usar json.loads() pra usar string
+		load_bitfat(sistema, f)
+		f.seek(SBLOCOS)
+		d = f.read()
+		print(d)
+		data = json.loads(d)# usar json.loads() pra usar string
 		sistema.metadados = data['metadados']
-		sistema.fat = data['fat']
+		# sistema.fat = data['fat']
 		f.close()
 	except IOError:
 		print("arquivo não existe, criando um")
@@ -115,10 +130,8 @@ def rm(arquivo, sist):
 
 def save_mount(sistema):
 	f = open(sistema.filename, 'w+')
-	f.write(bin(int(sistema.bitmap.hex(), 16))[2:])
-	f.seek(256)
-	data = {'fat' : sistema.fat,
-	'metadados' : sistema.metadados}
+	update_bitfat(sistema, f)
+	data = { 'metadados' : sistema.metadados }
 	json.dump(data, f, indent=None)
 	f.close()
 
